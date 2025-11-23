@@ -12,6 +12,10 @@ from datetime import datetime, timedelta
 # Adicionar o diretório utils ao path
 sys.path.append(str(Path(__file__).parent.parent))
 
+# Adicionar backend ao path
+backend_path = Path(__file__).parent.parent.parent / 'backend'
+sys.path.insert(0, str(backend_path))
+
 # Importar configurações centralizadas
 from utils.config import (
     setup_page,
@@ -22,7 +26,11 @@ from utils.config import (
     show_error_message,
     show_info_message
 )
-from utils.mock_data import get_df_doacoes, get_doadores_mockados, get_pontos_coleta_mockados
+
+# Importar modelos do backend
+from models.doacao import Doacao
+from models.doador import Doador
+from models.ponto_coleta import PontoColeta
 
 # ============================================================================
 # CONFIGURAÇÃO DA PÁGINA
@@ -45,10 +53,41 @@ st.title("📦 Registrar Doações")
 st.markdown("Registre novas doações e acompanhe o histórico de recebimentos")
 st.markdown("---")
 
-# Carregar dados mockados
-df_doacoes = get_df_doacoes()
-doadores = get_doadores_mockados()
-pontos = get_pontos_coleta_mockados()
+# Carregar dados do banco
+try:
+    doacoes_list = Doacao.get_all()
+    if doacoes_list:
+        df_doacoes = pd.DataFrame([d.to_dict() for d in doacoes_list])
+        # Adicionar colunas de compatibilidade
+        if 'id' not in df_doacoes.columns and 'idDoacao' in df_doacoes.columns:
+            df_doacoes['id'] = df_doacoes['idDoacao']
+        if 'data' not in df_doacoes.columns and 'data_criacao' in df_doacoes.columns:
+            df_doacoes['data'] = df_doacoes['data_criacao']
+        if 'doador' not in df_doacoes.columns:
+            df_doacoes['doador'] = 'Doador não especificado'
+        if 'status' not in df_doacoes.columns:
+            df_doacoes['status'] = 'Recebida'
+        if 'item' not in df_doacoes.columns:
+            df_doacoes['item'] = 'Item não especificado'
+    else:
+        df_doacoes = pd.DataFrame(columns=['id', 'data', 'doador', 'item', 'status'])
+except Exception as e:
+    show_error_message(f"Erro ao carregar doações: {str(e)}")
+    df_doacoes = pd.DataFrame(columns=['id', 'data', 'doador', 'item', 'status'])
+
+# Carregar doadores para o formulário
+try:
+    doadores_list = Doador.get_all()
+    doadores = [{'id': d.idDoador, 'nome': d.nome} for d in doadores_list] if doadores_list else []
+except Exception as e:
+    doadores = []
+
+# Carregar pontos de coleta para o formulário
+try:
+    pontos_list = PontoColeta.get_all()
+    pontos = [{'id': p.idPontoColeta, 'nome': p.responsavel} for p in pontos_list] if pontos_list else []
+except Exception as e:
+    pontos = []
 
 # ============================================================================
 # ABAS
@@ -75,7 +114,7 @@ with tab1:
             
             doador_selecionado = st.selectbox(
                 "Doador *",
-                options=[d['nome'] for d in doadores],
+                options=[f"{d['id']} - {d['nome']}" for d in doadores] if doadores else ["Nenhum doador cadastrado"],
                 placeholder="Selecione um doador..."
             )
             
@@ -107,8 +146,8 @@ with tab1:
                 )
             
             ponto_selecionado = st.selectbox(
-                "Ponto de Coleta *",
-                options=[p['nome'] for p in pontos]
+                "Ponto de Coleta",
+                options=[f"{p['id']} - {p['nome']}" for p in pontos] if pontos else ["Nenhum ponto cadastrado"]
             )
             
             observacoes = st.text_area(
@@ -129,12 +168,29 @@ with tab1:
         
         # Processar formulário
         if submit:
-            if doador_selecionado and tipo_doacao and descricao_item and quantidade and unidade and ponto_selecionado:
-                show_success_message(f"Doação de **{quantidade} {unidade}** de **{descricao_item}** registrada com sucesso!")
-                show_success_message(f"Doador: **{doador_selecionado}** | Ponto: **{ponto_selecionado}**")
-                st.balloons()
+            if doador_selecionado and tipo_doacao and descricao_item and quantidade and doadores:
+                try:
+                    # Extrair ID do doador selecionado
+                    doador_id = int(doador_selecionado.split(' - ')[0])
+                    
+                    # Criar objeto Doacao
+                    doacao = Doacao(
+                        doador_id=doador_id,
+                        data_criacao=data_doacao,
+                        data_entrega=None  # Pode ser definido depois
+                    )
+                    
+                    # Salvar no banco
+                    if doacao.save():
+                        show_success_message(f"Doação de **{quantidade} {unidade}** de **{descricao_item}** registrada com sucesso!")
+                        show_info_message(f"Doador ID: {doador_id} | Data: {data_doacao}")
+                        st.balloons()
+                    else:
+                        show_error_message("Erro ao salvar doação no banco de dados")
+                except Exception as e:
+                    show_error_message(f"Erro ao registrar doação: {str(e)}")
             else:
-                show_error_message("Por favor, preencha todos os campos obrigatórios (*)")
+                show_error_message("Preencha todos os campos obrigatórios e certifique-se de que há doadores cadastrados")
         
         if limpar:
             st.rerun()
@@ -145,16 +201,20 @@ with tab1:
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("Doações Hoje", 8)
+        st.metric("Doações Hoje", "-")
     
     with col2:
-        st.metric("Doações esta Semana", 45)
+        st.metric("Doações esta Semana", "-")
     
     with col3:
-        st.metric("Doações este Mês", 156)
+        st.metric("Doações este Mês", "-")
     
     with col4:
-        st.metric("Total de Doações", len(df_doacoes))
+        try:
+            total = len(df_doacoes) if not df_doacoes.empty else 0
+            st.metric("Total de Doações", total)
+        except:
+            st.metric("Total de Doações", 0)
 
 # ============================================================================
 # ABA 2 - HISTÓRICO

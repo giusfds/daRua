@@ -11,6 +11,10 @@ from pathlib import Path
 # Adicionar o diretório utils ao path
 sys.path.append(str(Path(__file__).parent.parent))
 
+# Adicionar backend ao path
+backend_path = Path(__file__).parent.parent.parent / 'backend'
+sys.path.insert(0, str(backend_path))
+
 # Importar configurações centralizadas
 from utils.config import (
     setup_page,
@@ -21,7 +25,9 @@ from utils.config import (
     show_error_message,
     show_info_message
 )
-from utils.mock_data import get_pontos_coleta_mockados
+
+# Importar modelo do backend
+from models.ponto_coleta import PontoColeta
 
 # ============================================================================
 # CONFIGURAÇÃO DA PÁGINA
@@ -44,8 +50,41 @@ st.title("📍 Pontos de Coleta")
 st.markdown("Cadastre e gerencie os pontos de coleta de doações")
 st.markdown("---")
 
-# Carregar dados mockados
-pontos = get_pontos_coleta_mockados()
+# Carregar dados do banco
+try:
+    pontos_list = PontoColeta.get_all()
+    if pontos_list:
+        pontos = []
+        for p in pontos_list:
+            ponto_dict = p.to_dict()
+            # Adicionar campos de compatibilidade
+            ponto_dict['id'] = p.idPontoColeta
+            ponto_dict['nome'] = p.responsavel  # Usar responsável como nome
+            # Montar endereço completo
+            end_parts = []
+            if p.logradouro:
+                end_parts.append(p.logradouro)
+            if p.numero:
+                end_parts.append(p.numero)
+            if p.bairro:
+                end_parts.append(f"- {p.bairro}")
+            if p.cidade:
+                end_parts.append(f", {p.cidade}")
+            if p.estado:
+                end_parts.append(f" - {p.estado}")
+            if p.cep:
+                end_parts.append(f" - CEP: {p.cep}")
+            ponto_dict['endereco'] = ' '.join(end_parts) if end_parts else 'Endereço não informado'
+            ponto_dict['horario'] = 'Seg-Sex 9h-18h'  # Valor padrão
+            ponto_dict['telefone'] = '-'  # Valor padrão
+            ponto_dict['email'] = '-'  # Valor padrão
+            ponto_dict['status'] = 'Ativo'  # Valor padrão
+            pontos.append(ponto_dict)
+    else:
+        pontos = []
+except Exception as e:
+    show_error_message(f"Erro ao carregar pontos de coleta: {str(e)}")
+    pontos = []
 
 # ============================================================================
 # BUSCA E NOVO CADASTRO
@@ -85,9 +124,9 @@ if st.session_state['mostrar_form_ponto']:
         with st.form("form_ponto"):
             st.markdown("### Dados do Ponto de Coleta")
             
-            nome_ponto = st.text_input(
-                "Nome do Ponto *",
-                placeholder="Ex: Centro Comunitário da Mooca"
+            responsavel = st.text_input(
+                "Responsável *",
+                placeholder="Nome do responsável pelo ponto"
             )
             
             st.markdown("#### Endereço")
@@ -106,43 +145,15 @@ if st.session_state['mostrar_form_ponto']:
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                bairro = st.text_input("Bairro *", placeholder="Ex: Mooca")
+                bairro = st.text_input("Bairro *", placeholder="Ex: Centro")
             
             with col2:
-                cidade = st.text_input("Cidade *", value="São Paulo")
+                cidade = st.text_input("Cidade *", placeholder="Belo Horizonte")
             
             with col3:
-                cep = st.text_input("CEP *", placeholder="00000-000")
+                estado = st.text_input("Estado (UF) *", placeholder="MG", max_chars=2)
             
-            st.markdown("#### Informações de Contato")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                horario = st.text_input(
-                    "Horário de Funcionamento *",
-                    placeholder="Ex: Seg-Sex 9h-18h"
-                )
-                responsavel = st.text_input(
-                    "Responsável *",
-                    placeholder="Nome do responsável"
-                )
-                telefone = st.text_input(
-                    "Telefone *",
-                    placeholder="(11) 98765-4321"
-                )
-            
-            with col2:
-                email = st.text_input(
-                    "Email",
-                    placeholder="contato@exemplo.com"
-                )
-                observacoes = st.text_area(
-                    "Observações",
-                    placeholder="Informações adicionais sobre o ponto de coleta...",
-                    height=100
-                )
-                ativo = st.checkbox("Ponto Ativo", value=True)
+            cep = st.text_input("CEP", placeholder="00000-000")
             
             st.markdown("---")
             
@@ -156,13 +167,32 @@ if st.session_state['mostrar_form_ponto']:
             
             # Processar formulário
             if submit:
-                if nome_ponto and rua and numero and bairro and cidade and cep and horario and responsavel and telefone:
-                    endereco_completo = f"{rua}, {numero} - {bairro}, {cidade}, SP - CEP: {cep}"
-                    show_success_message(f"Ponto de coleta **{nome_ponto}** cadastrado com sucesso!")
-                    show_success_message(f"Endereço: {endereco_completo}")
-                    st.balloons()
-                    st.session_state['mostrar_form_ponto'] = False
-                    st.rerun()
+                if responsavel and rua and numero and bairro and cidade and estado:
+                    try:
+                        # Criar objeto PontoColeta
+                        ponto = PontoColeta(
+                            responsavel=responsavel,
+                            logradouro=rua,
+                            numero=numero,
+                            complemento=complemento if complemento else None,
+                            bairro=bairro,
+                            cidade=cidade,
+                            estado=estado.upper(),
+                            cep=cep if cep else None
+                        )
+                        
+                        # Salvar no banco
+                        if ponto.save():
+                            endereco_completo = f"{rua}, {numero} - {bairro}, {cidade}, {estado}"
+                            show_success_message(f"Ponto de coleta **{responsavel}** cadastrado com sucesso!")
+                            show_success_message(f"Endereço: {endereco_completo}")
+                            st.balloons()
+                            st.session_state['mostrar_form_ponto'] = False
+                            st.rerun()
+                        else:
+                            show_error_message("Erro ao salvar ponto no banco de dados")
+                    except Exception as e:
+                        show_error_message(f"Erro ao cadastrar ponto: {str(e)}")
                 else:
                     show_error_message("Por favor, preencha todos os campos obrigatórios (*)")
             
@@ -210,7 +240,7 @@ with col4:
     if busca or filtro_status != "Todos":
         st.metric("Resultados", len(pontos_filtrados))
     else:
-        st.metric("Cadastros este Mês", 2)
+        st.metric("Cadastros este Mês", "-")
 
 st.markdown("---")
 
@@ -230,19 +260,12 @@ if pontos_filtrados:
                 ponto = pontos_filtrados[i + j]
                 
                 with col:
-                    # Status emoji e cor
-                    if ponto['status'] == 'Ativo':
-                        status_emoji = "🟢"
-                    else:
-                        status_emoji = "🔴"
+                    # Status emoji
+                    status_emoji = "🟢" if ponto['status'] == 'Ativo' else "🔴"
                     
                     # Card do ponto
                     with st.container():
-                        st.markdown(f"""
-                            <div class="ponto-card">
-                                <h3 style="margin-top:0;">{status_emoji} {ponto['nome']}</h3>
-                            </div>
-                        """, unsafe_allow_html=True)
+                        st.markdown(f"### {status_emoji} {ponto['nome']}")
                         
                         st.markdown(f"**📍 Endereço:**")
                         st.text(ponto['endereco'])
@@ -252,25 +275,6 @@ if pontos_filtrados:
                         st.markdown(f"**📞 Telefone:** {ponto['telefone']}")
                         st.markdown(f"**📧 Email:** {ponto['email']}")
                         st.markdown(f"**Status:** {ponto['status']}")
-                        
-                        # Botões de ação
-                        col_btn1, col_btn2, col_btn3 = st.columns(3)
-                        
-                        with col_btn1:
-                            if st.button("👁️ Detalhes", key=f"det_{ponto['id']}", use_container_width=True):
-                                show_info_message(f"Detalhes do ponto '{ponto['nome']}' serão implementados em breve!", "🚧")
-                        
-                        with col_btn2:
-                            if st.button("✏️ Editar", key=f"edit_{ponto['id']}", use_container_width=True):
-                                show_info_message(f"Edição do ponto '{ponto['nome']}' será implementada em breve!", "🚧")
-                        
-                        with col_btn3:
-                            if ponto['status'] == 'Ativo':
-                                if st.button("⏸️ Desativar", key=f"des_{ponto['id']}", use_container_width=True):
-                                    show_warning_message(f"Ponto '{ponto['nome']}' desativado!")
-                            else:
-                                if st.button("▶️ Ativar", key=f"ati_{ponto['id']}", use_container_width=True):
-                                    show_success_message(f"Ponto '{ponto['nome']}' ativado!")
                     
                     st.markdown("---")
 else:
@@ -283,13 +287,6 @@ if busca or filtro_status != "Todos":
 st.markdown("---")
 
 # ============================================================================
-# MAPA (SIMULADO)
-# ============================================================================
-
-st.markdown("### 🗺️ Mapa de Pontos de Coleta")
-show_info_message("Visualização de mapa com localização dos pontos será implementada em breve!", "🚧")
-
-# ============================================================================
 # INFORMAÇÕES ADICIONAIS
 # ============================================================================
 
@@ -300,47 +297,19 @@ with st.expander("ℹ️ Informações sobre Pontos de Coleta"):
     **Cadastrar Novo Ponto:**
     1. Clique no botão "Cadastrar Novo Ponto"
     2. Preencha todos os campos obrigatórios (*)
-    3. Informe o endereço completo com CEP
-    4. Defina o horário de funcionamento
-    5. Indique o responsável e dados de contato
-    6. Marque se o ponto está ativo
-    7. Clique em "Salvar"
+    3. Informe o endereço completo
+    4. Clique em "Salvar"
     
     **Campos Obrigatórios:**
-    - Nome do Ponto
-    - Rua e Número
-    - Bairro, Cidade e CEP
-    - Horário de Funcionamento
     - Responsável
-    - Telefone de Contato
-    
-    **Campos Opcionais:**
-    - Complemento do endereço
-    - Email
-    - Observações
+    - Rua e Número
+    - Bairro, Cidade e Estado
     
     **Buscar Pontos:**
     - Use a barra de busca para encontrar por nome, endereço ou responsável
     - Filtre por status (Ativo/Inativo)
-    - Os filtros podem ser combinados
     
-    **Gerenciar Pontos:**
-    - Clique em "Detalhes" para ver informações completas
-    - Clique em "Editar" para modificar dados do ponto
-    - Use "Desativar" para pausar temporariamente um ponto
-    - Use "Ativar" para reativar um ponto desativado
-    
-    **Status dos Pontos:**
-    - **Ativo:** Ponto em funcionamento, aceitando doações
-    - **Inativo:** Ponto temporariamente fechado ou desativado
-    
-    **Boas Práticas:**
-    - Mantenha os dados de contato sempre atualizados
-    - Informe horários de funcionamento precisos
-    - Atualize o status quando houver mudanças
-    - Mantenha observações relevantes para doadores
-    
-    > 💡 **Dica:** Pontos de coleta bem localizados e com horários flexíveis facilitam as doações!
+    > 💡 **Dica:** Pontos de coleta bem localizados facilitam as doações!
     """)
 
 # ============================================================================

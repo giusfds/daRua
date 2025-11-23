@@ -12,6 +12,10 @@ from datetime import datetime
 # Adicionar o diretório utils ao path
 sys.path.append(str(Path(__file__).parent.parent))
 
+# Adicionar backend ao path
+backend_path = Path(__file__).parent.parent.parent / 'backend'
+sys.path.insert(0, str(backend_path))
+
 # Importar configurações centralizadas
 from utils.config import (
     setup_page,
@@ -22,7 +26,9 @@ from utils.config import (
     show_error_message,
     show_info_message
 )
-from utils.mock_data import get_df_beneficiarios
+
+# Importar modelo do backend
+from models.beneficiario import Beneficiario
 
 # ============================================================================
 # CONFIGURAÇÃO DA PÁGINA
@@ -45,8 +51,23 @@ st.title("🤝 Gerenciar Beneficiários")
 st.markdown("Cadastre e gerencie os beneficiários do sistema")
 st.markdown("---")
 
-# Carregar dados mockados
-df_beneficiarios = get_df_beneficiarios()
+# Carregar dados do banco
+try:
+    beneficiarios_list = Beneficiario.get_all()
+    if beneficiarios_list:
+        df_beneficiarios = pd.DataFrame([b.to_dict() for b in beneficiarios_list])
+        # Adicionar colunas derivadas para compatibilidade
+        if 'id' not in df_beneficiarios.columns and 'idBeneficiario' in df_beneficiarios.columns:
+            df_beneficiarios['id'] = df_beneficiarios['idBeneficiario']
+        if 'necessidades' not in df_beneficiarios.columns:
+            df_beneficiarios['necessidades'] = 'Não especificado'
+        if 'status' not in df_beneficiarios.columns:
+            df_beneficiarios['status'] = 'Ativo'
+    else:
+        df_beneficiarios = pd.DataFrame(columns=['id', 'nome', 'idade', 'genero', 'descricao', 'necessidades', 'status'])
+except Exception as e:
+    show_error_message(f"Erro ao carregar beneficiários: {str(e)}")
+    df_beneficiarios = pd.DataFrame(columns=['id', 'nome', 'idade', 'genero', 'descricao', 'necessidades', 'status'])
 
 # ============================================================================
 # SEÇÃO DE BUSCA, FILTROS E NOVO CADASTRO
@@ -82,13 +103,22 @@ df_filtrado = df_beneficiarios.copy()
 
 # Filtrar por busca
 if busca:
-    df_filtrado = df_filtrado[
-        df_filtrado['nome'].str.contains(busca, case=False, na=False)
-    ]
+    try:
+        if not df_beneficiarios.empty:
+            df_filtrado = df_filtrado[
+                df_filtrado['nome'].str.contains(busca, case=False, na=False)
+            ]
+    except Exception as e:
+        show_info_message("Erro ao filtrar dados")
+        df_filtrado = df_beneficiarios
 
 # Filtrar por status
 if filtro_status != "Todos":
-    df_filtrado = df_filtrado[df_filtrado['status'] == filtro_status]
+    try:
+        if not df_filtrado.empty and 'status' in df_filtrado.columns:
+            df_filtrado = df_filtrado[df_filtrado['status'] == filtro_status]
+    except Exception as e:
+        pass
 
 # ============================================================================
 # FORMULÁRIO DE CADASTRO
@@ -149,10 +179,42 @@ if st.session_state['mostrar_form_benef']:
             # Processar formulário
             if submit:
                 if nome:
-                    show_success_message(f"Beneficiário **{nome}** cadastrado com sucesso!")
-                    st.balloons()
-                    st.session_state['mostrar_form_benef'] = False
-                    st.rerun()
+                    try:
+                        # Calcular idade a partir da data de nascimento
+                        idade = (datetime.now() - datetime.combine(data_nascimento, datetime.min.time())).days // 365
+                        
+                        # Converter gênero para formato do banco (M/F/O/N)
+                        genero_map = {
+                            "Masculino": "M",
+                            "Feminino": "F",
+                            "Outro": "O",
+                            "Prefiro não informar": "N"
+                        }
+                        genero_bd = genero_map.get(genero, "N")
+                        
+                        # Criar descrição com necessidades
+                        desc_completa = descricao
+                        if necessidades:
+                            desc_completa += f" | Necessidades: {', '.join(necessidades)}"
+                        
+                        # Criar objeto Beneficiario
+                        beneficiario = Beneficiario(
+                            nome=nome,
+                            idade=idade,
+                            genero=genero_bd,
+                            descricao=desc_completa if desc_completa else None
+                        )
+                        
+                        # Salvar no banco
+                        if beneficiario.save():
+                            show_success_message(f"Beneficiário **{nome}** cadastrado com sucesso!")
+                            st.balloons()
+                            st.session_state['mostrar_form_benef'] = False
+                            st.rerun()
+                        else:
+                            show_error_message("Erro ao salvar beneficiário no banco de dados")
+                    except Exception as e:
+                        show_error_message(f"Erro ao cadastrar beneficiário: {str(e)}")
                 else:
                     show_error_message("Por favor, preencha o campo Nome Completo")
             
@@ -167,15 +229,31 @@ if st.session_state['mostrar_form_benef']:
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.metric("Total de Beneficiários", len(df_beneficiarios))
+    try:
+        total = len(df_beneficiarios) if not df_beneficiarios.empty else 0
+        st.metric("Total de Beneficiários", total)
+    except:
+        st.metric("Total de Beneficiários", 0)
 
 with col2:
-    ativos = len(df_beneficiarios[df_beneficiarios['status'] == 'Ativo'])
-    st.metric("Beneficiários Ativos", ativos)
+    try:
+        if not df_beneficiarios.empty and 'status' in df_beneficiarios.columns:
+            ativos = len(df_beneficiarios[df_beneficiarios['status'] == 'Ativo'])
+        else:
+            ativos = 0
+        st.metric("Beneficiários Ativos", ativos)
+    except:
+        st.metric("Beneficiários Ativos", 0)
 
 with col3:
-    aguardando = len(df_beneficiarios[df_beneficiarios['status'] == 'Aguardando'])
-    st.metric("Aguardando Atendimento", aguardando)
+    try:
+        if not df_beneficiarios.empty and 'status' in df_beneficiarios.columns:
+            aguardando = len(df_beneficiarios[df_beneficiarios['status'] == 'Aguardando'])
+        else:
+            aguardando = 0
+        st.metric("Aguardando Atendimento", aguardando)
+    except:
+        st.metric("Aguardando Atendimento", 0)
 
 with col4:
     if busca or filtro_status != "Todos":

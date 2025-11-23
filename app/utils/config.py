@@ -50,6 +50,27 @@ GLOBAL_CSS = f"""
         color: {COLORS['text_light']};
     }}
     
+    /* ========================================= */
+    /* ESCONDER NAVEGAÇÃO AUTOMÁTICA DUPLICADA */
+    /* ========================================= */
+    [data-testid="stSidebarNav"] {{
+        display: none !important;
+    }}
+    
+    section[data-testid="stSidebarNav"] {{
+        display: none !important;
+    }}
+    
+    ul[data-testid="stSidebarNavItems"] {{
+        display: none !important;
+    }}
+    
+    /* Remove o espaço vazio que sobra */
+    [data-testid="stSidebarNav"] + div {{
+        padding-top: 0 !important;
+    }}
+    /* ========================================= */
+    
     /* Estilo dos botões */
     .stButton>button {{
         background-color: {COLORS['primary']};
