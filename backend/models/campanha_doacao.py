@@ -16,12 +16,16 @@ class CampanhaDoacao:
     
     def __init__(self, nome: str, data_inicio: Optional[date] = None,
                  data_termino: Optional[date] = None, descricao: Optional[str] = None,
-                 idCampanhaDoacao: Optional[int] = None):
+                 meta: Optional[float] = 0.0, arrecadado: Optional[float] = 0.0,
+                 tipo_meta: Optional[str] = "R$", idCampanhaDoacao: Optional[int] = None):
         self.idCampanhaDoacao = idCampanhaDoacao
         self.nome = nome
         self.data_inicio = data_inicio
         self.data_termino = data_termino
         self.descricao = descricao
+        self.meta = meta or 0.0
+        self.arrecadado = arrecadado or 0.0
+        self.tipo_meta = tipo_meta or "R$"
     
     def __repr__(self):
         return f"CampanhaDoacao(id={self.idCampanhaDoacao}, nome={self.nome})"
@@ -33,6 +37,10 @@ class CampanhaDoacao:
         if self.data_inicio and self.data_termino:
             if self.data_termino < self.data_inicio:
                 return False, "Data de término deve ser após data de início"
+        if self.meta < 0:
+            return False, "Meta não pode ser negativa"
+        if self.arrecadado < 0:
+            return False, "Arrecadado não pode ser negativo"
         return True, ""
     
     def save(self) -> bool:
@@ -43,10 +51,11 @@ class CampanhaDoacao:
             return False
         
         query = """
-            INSERT INTO CampanhaDoacao (Nome, DataInicio, DataTermino, Descricao)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO CampanhaDoacao (Nome, DataInicio, DataTermino, Descricao, Meta, Arrecadado, TipoMeta)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
-        params = (self.nome, self.data_inicio, self.data_termino, self.descricao)
+        params = (self.nome, self.data_inicio, self.data_termino, self.descricao, 
+                 self.meta, self.arrecadado, self.tipo_meta)
         
         with DatabaseConnection() as db:
             if db.execute_query(query, params):
@@ -67,11 +76,13 @@ class CampanhaDoacao:
         
         query = """
             UPDATE CampanhaDoacao SET Nome = %s, DataInicio = %s, 
-                                     DataTermino = %s, Descricao = %s
+                                     DataTermino = %s, Descricao = %s,
+                                     Meta = %s, Arrecadado = %s, TipoMeta = %s
             WHERE idCampanhaDoacao = %s
         """
         params = (self.nome, self.data_inicio, self.data_termino, 
-                 self.descricao, self.idCampanhaDoacao)
+                 self.descricao, self.meta, self.arrecadado, self.tipo_meta,
+                 self.idCampanhaDoacao)
         
         with DatabaseConnection() as db:
             return db.execute_query(query, params)
@@ -98,7 +109,10 @@ class CampanhaDoacao:
                     nome=result['Nome'],
                     data_inicio=result['DataInicio'],
                     data_termino=result['DataTermino'],
-                    descricao=result['Descricao']
+                    descricao=result['Descricao'],
+                    meta=float(result.get('Meta', 0.0)),
+                    arrecadado=float(result.get('Arrecadado', 0.0)),
+                    tipo_meta=result.get('TipoMeta', 'R$')
                 )
         return None
     
@@ -114,7 +128,10 @@ class CampanhaDoacao:
                     nome=row['Nome'],
                     data_inicio=row['DataInicio'],
                     data_termino=row['DataTermino'],
-                    descricao=row['Descricao']
+                    descricao=row['Descricao'],
+                    meta=float(row.get('Meta', 0.0)),
+                    arrecadado=float(row.get('Arrecadado', 0.0)),
+                    tipo_meta=row.get('TipoMeta', 'R$')
                 )
                 for row in results
             ]
@@ -135,10 +152,20 @@ class CampanhaDoacao:
                     nome=row['Nome'],
                     data_inicio=row['DataInicio'],
                     data_termino=row['DataTermino'],
-                    descricao=row['Descricao']
+                    descricao=row['Descricao'],
+                    meta=float(row.get('Meta', 0.0)),
+                    arrecadado=float(row.get('Arrecadado', 0.0)),
+                    tipo_meta=row.get('TipoMeta', 'R$')
                 )
                 for row in results
             ]
+    
+    def calcular_progresso(self) -> float:
+        """Calcula o progresso da campanha em porcentagem"""
+        if self.meta <= 0:
+            return 0.0
+        progresso = (self.arrecadado / self.meta) * 100
+        return min(progresso, 100.0)  # Limita a 100%
     
     def to_dict(self) -> Dict:
         """Converte para dicionário"""
@@ -147,7 +174,11 @@ class CampanhaDoacao:
             'nome': self.nome,
             'data_inicio': str(self.data_inicio) if self.data_inicio else None,
             'data_termino': str(self.data_termino) if self.data_termino else None,
-            'descricao': self.descricao
+            'descricao': self.descricao,
+            'meta': self.meta,
+            'arrecadado': self.arrecadado,
+            'tipo_meta': self.tipo_meta,
+            'progresso': self.calcular_progresso()
         }
 
 
@@ -160,8 +191,12 @@ if __name__ == "__main__":
         nome="Campanha de Inverno 2025",
         data_inicio=date.today(),
         data_termino=date.today() + timedelta(days=90),
-        descricao="Arrecadação de roupas e cobertores"
+        descricao="Arrecadação de roupas e cobertores",
+        meta=10000.00,
+        arrecadado=2500.00,
+        tipo_meta="R$"
     )
     
     if campanha.save():
         print(f"✓ Criado: {campanha}")
+        print(f"✓ Progresso: {campanha.calcular_progresso():.1f}%")
