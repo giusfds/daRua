@@ -816,11 +816,745 @@ def get_objetos_doacao(doacao_id):
 
 ---
 
+## 🎯 Casos de Uso Práticos
+
+### Caso de Uso 1: Fluxo Completo de Doação em Duas Fases
+
+Este exemplo demonstra o sistema de duas fases (Recebimento → Distribuição):
+
+```python
+from backend.models.doador import Doador
+from backend.models.doacao import Doacao
+from backend.models.objeto_doavel import ObjetoDoavel
+from backend.models.beneficiario import Beneficiario
+from backend.models.voluntario import Voluntario
+from datetime import date, timedelta
+
+# ========== FASE 1: RECEBIMENTO ==========
+print("🔵 FASE 1: Recebimento da Doação\n")
+
+# 1. Registrar doador
+doador = Doador(
+    nome="Supermercado Bom Preço",
+    email="contato@bompreco.com",
+    telefone="(31) 3333-4444",
+    cidade="Belo Horizonte",
+    estado="MG"
+)
+doador.save()
+print(f"✅ Doador cadastrado: {doador.nome}")
+
+# 2. Criar doação (Status inicial: Recebida)
+doacao = Doacao(
+    doadorId=doador.idDoador,
+    campanhaId=1
+)
+doacao.save()
+print(f"✅ Doação registrada: ID {doacao.idDoacao}")
+print(f"   Status: Recebida")
+print(f"   Data: {doacao.dataCriacao}")
+
+# 3. Adicionar itens doados
+objetos_doados = [
+    ObjetoDoavel(nome="Arroz 5kg", categoria="Alimentos", pontoColetaId=1),
+    ObjetoDoavel(nome="Feijão 1kg", categoria="Alimentos", pontoColetaId=1),
+    ObjetoDoavel(nome="Óleo 900ml", categoria="Alimentos", pontoColetaId=1),
+    ObjetoDoavel(nome="Açúcar 1kg", categoria="Alimentos", pontoColetaId=1)
+]
+
+print("\n📦 Itens recebidos:")
+for obj in objetos_doados:
+    obj.save()
+    doacao.adicionar_objeto(obj.idObjeto)
+    print(f"   - {obj.nome}")
+
+# ========== FASE 2: DISTRIBUIÇÃO ==========
+print("\n🟢 FASE 2: Distribuição da Doação\n")
+
+# 4. Selecionar beneficiários
+beneficiarios_ids = [1, 2, 3]  # IDs dos beneficiários
+print(f"👥 Beneficiários selecionados: {len(beneficiarios_ids)}")
+
+# 5. Selecionar voluntários distribuidores
+voluntarios_ids = [1, 2]  # IDs dos voluntários
+print(f"🙋 Voluntários distribuidores: {len(voluntarios_ids)}")
+
+# 6. Executar distribuição
+print("\n🚚 Executando distribuição...")
+sucesso = doacao.distribuir(
+    beneficiarios_ids=beneficiarios_ids,
+    voluntarios_ids=voluntarios_ids
+)
+
+if sucesso:
+    print("✅ Distribuição concluída!")
+    print(f"   Status: Distribuída")
+    print(f"   Data de distribuição: {date.today()}")
+
+    # 7. Verificar status
+    status = doacao.calcular_status()
+    print(f"\n📊 Status da Doação:")
+    print(f"   - Status: {status}")
+    print(f"   - Beneficiários: {len(doacao.listar_beneficiarios())}")
+    print(f"   - Voluntários: {len(doacao.listar_voluntarios_distribuidores())}")
+    print(f"   - Objetos: {len(doacao.get_objetos())}")
+else:
+    print("❌ Erro na distribuição")
+```
+
+**Saída Esperada:**
+
+```
+🔵 FASE 1: Recebimento da Doação
+
+✅ Doador cadastrado: Supermercado Bom Preço
+✅ Doação registrada: ID 42
+   Status: Recebida
+   Data: 2024-01-15
+
+📦 Itens recebidos:
+   - Arroz 5kg
+   - Feijão 1kg
+   - Óleo 900ml
+   - Açúcar 1kg
+
+🟢 FASE 2: Distribuição da Doação
+
+👥 Beneficiários selecionados: 3
+🙋 Voluntários distribuidores: 2
+
+🚚 Executando distribuição...
+✅ Distribuição concluída!
+   Status: Distribuída
+   Data de distribuição: 2024-01-15
+
+📊 Status da Doação:
+   - Status: Distribuída
+   - Beneficiários: 3
+   - Voluntários: 2
+   - Objetos: 4
+```
+
+---
+
+### Caso de Uso 2: Gestão Completa de Campanha
+
+Criar campanha, adicionar necessidades, receber doações e gerar relatório:
+
+```python
+from backend.models.campanha_doacao import CampanhaDoacao
+from backend.models.necessidade import Necessidade
+from backend.models.doacao import Doacao
+from datetime import date, timedelta
+
+# 1. Criar campanha
+print("📢 Criando Campanha de Inverno\n")
+
+campanha = CampanhaDoacao(
+    nome="Campanha do Agasalho 2024",
+    dataInicio=date.today(),
+    dataTermino=date.today() + timedelta(days=60),
+    descricao="Arrecadação de roupas e cobertores para o inverno"
+)
+campanha.save()
+print(f"✅ Campanha criada: ID {campanha.idCampanha}")
+
+# 2. Definir necessidades
+necessidades = [
+    "Cobertores novos ou em bom estado",
+    "Agasalhos tamanho adulto",
+    "Meias térmicas",
+    "Toucas e luvas",
+    "Roupas de cama"
+]
+
+print(f"\n📝 Necessidades da campanha:")
+for desc in necessidades:
+    nec = Necessidade(descricao=desc)
+    nec.save()
+    # Vincular à campanha (tabela N:N Promove)
+    print(f"   - {desc}")
+
+# 3. Simular recebimento de doações ao longo dos dias
+print(f"\n📦 Doações recebidas:\n")
+
+doacoes_campanha = []
+for i in range(5):
+    doacao = Doacao(
+        doadorId=i + 1,  # Diferentes doadores
+        campanhaId=campanha.idCampanha
+    )
+    doacao.save()
+    doacoes_campanha.append(doacao)
+    print(f"   Dia {i+1}: Doação #{doacao.idDoacao}")
+
+# 4. Gerar relatório da campanha
+print(f"\n📊 Relatório da Campanha\n")
+print(f"{'='*50}")
+print(f"Campanha: {campanha.nome}")
+print(f"Período: {campanha.dataInicio} até {campanha.dataTermino}")
+print(f"Dias restantes: {(campanha.dataTermino - date.today()).days}")
+print(f"\n📈 Estatísticas:")
+print(f"   Total de doações: {len(doacoes_campanha)}")
+print(f"   Necessidades definidas: {len(necessidades)}")
+
+# Calcular quantos foram distribuídos
+distribuidas = sum(1 for d in doacoes_campanha if d.calcular_status() == "Distribuída")
+recebidas = len(doacoes_campanha) - distribuidas
+
+print(f"   Doações recebidas: {recebidas}")
+print(f"   Doações distribuídas: {distribuidas}")
+print(f"   Taxa de distribuição: {(distribuidas/len(doacoes_campanha)*100):.1f}%")
+print(f"{'='*50}")
+```
+
+**Saída Esperada:**
+
+```
+📢 Criando Campanha de Inverno
+
+✅ Campanha criada: ID 15
+
+📝 Necessidades da campanha:
+   - Cobertores novos ou em bom estado
+   - Agasalhos tamanho adulto
+   - Meias térmicas
+   - Toucas e luvas
+   - Roupas de cama
+
+📦 Doações recebidas:
+
+   Dia 1: Doação #128
+   Dia 2: Doação #129
+   Dia 3: Doação #130
+   Dia 4: Doação #131
+   Dia 5: Doação #132
+
+📊 Relatório da Campanha
+
+==================================================
+Campanha: Campanha do Agasalho 2024
+Período: 2024-01-15 até 2024-03-15
+Dias restantes: 59
+
+📈 Estatísticas:
+   Total de doações: 5
+   Necessidades definidas: 5
+   Doações recebidas: 3
+   Doações distribuídas: 2
+   Taxa de distribuição: 40.0%
+==================================================
+```
+
+---
+
+### Caso de Uso 3: Sistema de Busca e Filtros
+
+Implementar buscas avançadas por múltiplos critérios:
+
+```python
+from backend.models.doador import Doador
+from backend.models.doacao import Doacao
+from backend.models.beneficiario import Beneficiario
+from backend.database.connection import DatabaseConnection
+from datetime import date, timedelta
+
+class BuscaAvancada:
+    """Classe utilitária para buscas complexas"""
+
+    @staticmethod
+    def buscar_doadores_por_regiao(cidade: str = None, estado: str = None):
+        """Busca doadores por localização"""
+        query = "SELECT * FROM Doador WHERE 1=1"
+        params = []
+
+        if cidade:
+            query += " AND Cidade LIKE %s"
+            params.append(f"%{cidade}%")
+
+        if estado:
+            query += " AND Estado = %s"
+            params.append(estado)
+
+        query += " ORDER BY Nome"
+
+        with DatabaseConnection() as db:
+            results = db.fetch_all(query, tuple(params))
+            return [Doador(**row) for row in results] if results else []
+
+    @staticmethod
+    def buscar_doacoes_por_periodo_e_status(
+        data_inicio: date,
+        data_fim: date,
+        status: str = None
+    ):
+        """Busca doações por período e opcionalmente por status"""
+        query = """
+            SELECT
+                d.idDoacao,
+                d.DataCriacao,
+                d.DataEntrega,
+                do.Nome as NomeDoador,
+                c.Nome as NomeCampanha,
+                CASE
+                    WHEN d.DataEntrega IS NOT NULL THEN 'Distribuída'
+                    ELSE 'Recebida'
+                END as Status
+            FROM Doacao d
+            INNER JOIN Doador do ON d.Doador_idDoador = do.idDoador
+            LEFT JOIN CampanhaDoacao c ON d.CampanhaDoacao_idCampanha = c.idCampanha
+            WHERE d.DataCriacao BETWEEN %s AND %s
+        """
+        params = [data_inicio, data_fim]
+
+        if status:
+            if status == "Distribuída":
+                query += " AND d.DataEntrega IS NOT NULL"
+            elif status == "Recebida":
+                query += " AND d.DataEntrega IS NULL"
+
+        query += " ORDER BY d.DataCriacao DESC"
+
+        with DatabaseConnection() as db:
+            return db.fetch_all(query, tuple(params))
+
+    @staticmethod
+    def buscar_beneficiarios_por_perfil(
+        genero: str = None,
+        idade_min: int = None,
+        idade_max: int = None
+    ):
+        """Busca beneficiários por perfil demográfico"""
+        query = "SELECT * FROM Beneficiario WHERE 1=1"
+        params = []
+
+        if genero:
+            query += " AND Genero = %s"
+            params.append(genero)
+
+        if idade_min is not None:
+            query += " AND Idade >= %s"
+            params.append(idade_min)
+
+        if idade_max is not None:
+            query += " AND Idade <= %s"
+            params.append(idade_max)
+
+        query += " ORDER BY Nome"
+
+        with DatabaseConnection() as db:
+            results = db.fetch_all(query, tuple(params))
+            return [Beneficiario(**row) for row in results] if results else []
+
+
+# ========== EXEMPLO DE USO ==========
+
+# 1. Buscar doadores de São Paulo
+print("🔍 Buscando doadores de São Paulo\n")
+doadores_sp = BuscaAvancada.buscar_doadores_por_regiao(estado="SP")
+print(f"Encontrados: {len(doadores_sp)} doadores")
+for doador in doadores_sp[:5]:
+    print(f"   - {doador.nome} ({doador.cidade})")
+
+# 2. Buscar doações do último mês
+print("\n🔍 Buscando doações do último mês\n")
+hoje = date.today()
+mes_atras = hoje - timedelta(days=30)
+
+doacoes = BuscaAvancada.buscar_doacoes_por_periodo_e_status(
+    data_inicio=mes_atras,
+    data_fim=hoje,
+    status="Distribuída"
+)
+print(f"Encontradas: {len(doacoes)} doações distribuídas")
+for doacao in doacoes[:5]:
+    print(f"   - {doacao['NomeDoador']} em {doacao['DataCriacao']}")
+
+# 3. Buscar beneficiários mulheres entre 30-50 anos
+print("\n🔍 Buscando beneficiárias mulheres (30-50 anos)\n")
+beneficiarias = BuscaAvancada.buscar_beneficiarios_por_perfil(
+    genero="F",
+    idade_min=30,
+    idade_max=50
+)
+print(f"Encontradas: {len(beneficiarias)} beneficiárias")
+for benef in beneficiarias[:5]:
+    print(f"   - {benef.nome}, {benef.idade} anos")
+```
+
+---
+
+### Caso de Uso 4: Dashboard com Métricas
+
+Coletar e exibir estatísticas do sistema:
+
+```python
+from backend.models.doador import Doador
+from backend.models.doacao import Doacao
+from backend.models.beneficiario import Beneficiario
+from backend.models.voluntario import Voluntario
+from backend.database.connection import DatabaseConnection
+from datetime import date, timedelta
+
+class Dashboard:
+    """Classe para métricas e estatísticas"""
+
+    @staticmethod
+    def obter_metricas_gerais():
+        """Retorna métricas gerais do sistema"""
+        return {
+            'total_doadores': len(Doador.get_all()),
+            'total_beneficiarios': len(Beneficiario.get_all()),
+            'total_voluntarios': len(Voluntario.get_all()),
+            'total_doacoes': len(Doacao.get_all())
+        }
+
+    @staticmethod
+    def obter_doacoes_por_status():
+        """Conta doações por status"""
+        todas = Doacao.get_all()
+        recebidas = sum(1 for d in todas if d.calcular_status() == "Recebida")
+        distribuidas = len(todas) - recebidas
+
+        return {
+            'recebidas': recebidas,
+            'distribuidas': distribuidas,
+            'taxa_distribuicao': (distribuidas / len(todas) * 100) if todas else 0
+        }
+
+    @staticmethod
+    def obter_top_doadores(limite=10):
+        """Retorna doadores com mais doações"""
+        query = """
+            SELECT
+                do.idDoador,
+                do.Nome,
+                COUNT(d.idDoacao) as TotalDoacoes
+            FROM Doador do
+            LEFT JOIN Doacao d ON do.idDoador = d.Doador_idDoador
+            GROUP BY do.idDoador, do.Nome
+            ORDER BY TotalDoacoes DESC
+            LIMIT %s
+        """
+
+        with DatabaseConnection() as db:
+            return db.fetch_all(query, (limite,))
+
+    @staticmethod
+    def obter_doacoes_por_mes():
+        """Retorna quantidade de doações por mês (últimos 6 meses)"""
+        query = """
+            SELECT
+                DATE_FORMAT(DataCriacao, '%Y-%m') as Mes,
+                COUNT(*) as Total
+            FROM Doacao
+            WHERE DataCriacao >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+            GROUP BY Mes
+            ORDER BY Mes
+        """
+
+        with DatabaseConnection() as db:
+            return db.fetch_all(query)
+
+
+# ========== EXEMPLO DE USO ==========
+
+print("📊 DASHBOARD - Sistema Somos DaRua\n")
+print("=" * 60)
+
+# 1. Métricas Gerais
+metricas = Dashboard.obter_metricas_gerais()
+print("\n📈 MÉTRICAS GERAIS\n")
+print(f"   👤 Doadores cadastrados: {metricas['total_doadores']}")
+print(f"   🤝 Beneficiários: {metricas['total_beneficiarios']}")
+print(f"   🙋 Voluntários: {metricas['total_voluntarios']}")
+print(f"   📦 Doações registradas: {metricas['total_doacoes']}")
+
+# 2. Status das Doações
+status = Dashboard.obter_doacoes_por_status()
+print("\n🔄 STATUS DAS DOAÇÕES\n")
+print(f"   🔵 Recebidas: {status['recebidas']}")
+print(f"   🟢 Distribuídas: {status['distribuidas']}")
+print(f"   📊 Taxa de distribuição: {status['taxa_distribuicao']:.1f}%")
+
+# 3. Top Doadores
+print("\n⭐ TOP 10 DOADORES\n")
+top = Dashboard.obter_top_doadores()
+for i, doador in enumerate(top, 1):
+    print(f"   {i}. {doador['Nome']}: {doador['TotalDoacoes']} doações")
+
+# 4. Doações por Mês
+print("\n📅 DOAÇÕES POR MÊS (Últimos 6 meses)\n")
+por_mes = Dashboard.obter_doacoes_por_mes()
+for item in por_mes:
+    # Criar gráfico simples em texto
+    barra = "█" * item['Total']
+    print(f"   {item['Mes']}: {barra} ({item['Total']})")
+
+print("\n" + "=" * 60)
+```
+
+**Saída Esperada:**
+
+```
+📊 DASHBOARD - Sistema Somos DaRua
+
+============================================================
+
+📈 MÉTRICAS GERAIS
+
+   👤 Doadores cadastrados: 245
+   🤝 Beneficiários: 312
+   🙋 Voluntários: 48
+   📦 Doações registradas: 589
+
+🔄 STATUS DAS DOAÇÕES
+
+   🔵 Recebidas: 127
+   🟢 Distribuídas: 462
+   📊 Taxa de distribuição: 78.4%
+
+⭐ TOP 10 DOADORES
+
+   1. Supermercado Central: 45 doações
+   2. Igreja Nossa Senhora: 38 doações
+   3. Padaria Pão Quente: 32 doações
+   4. Empresa Tech Solutions: 28 doações
+   5. Farmácia Popular: 25 doações
+   6. Loja de Roupas Fashion: 22 doações
+   7. João Silva: 18 doações
+   8. Maria Santos: 15 doações
+   9. Restaurante Sabor: 14 doações
+   10. Pedro Costa: 12 doações
+
+📅 DOAÇÕES POR MÊS (Últimos 6 meses)
+
+   2023-08: ██████████████████████████ (78)
+   2023-09: ████████████████████████████████ (95)
+   2023-10: ████████████████████████████████████ (105)
+   2023-11: ██████████████████████████████ (92)
+   2023-12: ████████████████████████████████████████ (121)
+   2024-01: ███████████████████████████████████████ (98)
+
+============================================================
+```
+
+---
+
+### Caso de Uso 5: Validação e Tratamento de Erros
+
+Boas práticas para lidar com erros e validações:
+
+```python
+from backend.models.doador import Doador
+from backend.models.doacao import Doacao
+import streamlit as st
+
+def cadastrar_doador_com_validacao(dados: dict) -> bool:
+    """
+    Cadastra doador com validação completa e tratamento de erros
+
+    Args:
+        dados: Dicionário com dados do doador
+
+    Returns:
+        bool: True se sucesso, False se erro
+    """
+    try:
+        # 1. Validações de entrada (frontend)
+        if not dados.get('nome'):
+            st.error("❌ Nome é obrigatório")
+            return False
+
+        if dados.get('nome') and len(dados['nome']) < 3:
+            st.error("❌ Nome deve ter pelo menos 3 caracteres")
+            return False
+
+        if dados.get('email') and '@' not in dados['email']:
+            st.error("❌ Email inválido")
+            return False
+
+        if dados.get('estado') and len(dados['estado']) != 2:
+            st.error("❌ Estado deve ter 2 caracteres (ex: MG)")
+            return False
+
+        if dados.get('cep'):
+            cep_limpo = dados['cep'].replace('-', '').replace('.', '')
+            if len(cep_limpo) != 8 or not cep_limpo.isdigit():
+                st.error("❌ CEP deve ter 8 dígitos")
+                return False
+
+        # 2. Criar objeto doador
+        doador = Doador(
+            nome=dados['nome'].strip(),
+            email=dados.get('email', '').strip() or None,
+            telefone=dados.get('telefone', '').strip() or None,
+            logradouro=dados.get('logradouro', '').strip() or None,
+            numero=dados.get('numero', '').strip() or None,
+            complemento=dados.get('complemento', '').strip() or None,
+            bairro=dados.get('bairro', '').strip() or None,
+            cidade=dados.get('cidade', '').strip() or None,
+            estado=dados.get('estado', '').strip().upper() or None,
+            cep=dados.get('cep', '').strip() or None
+        )
+
+        # 3. Validação do model
+        valido, erro = doador.validate()
+        if not valido:
+            st.error(f"❌ {erro}")
+            return False
+
+        # 4. Verificar duplicidade (email)
+        if doador.email:
+            existentes = Doador.get_all()
+            for existente in existentes:
+                if existente.email == doador.email:
+                    st.warning(f"⚠️ Já existe um doador com email {doador.email}")
+                    return False
+
+        # 5. Salvar
+        if doador.save():
+            st.success(f"✅ Doador {doador.nome} cadastrado com sucesso!")
+            st.info(f"ID: {doador.idDoador}")
+            return True
+        else:
+            st.error("❌ Erro ao salvar no banco de dados")
+            return False
+
+    except Exception as e:
+        st.error(f"❌ Erro inesperado: {str(e)}")
+        print(f"ERRO: {e}")  # Log para debug
+        return False
+
+
+# ========== EXEMPLO DE USO NO STREAMLIT ==========
+
+def pagina_cadastro_doador():
+    """Página de cadastro com validação completa"""
+    st.title("👤 Cadastro de Doador")
+
+    with st.form("form_doador"):
+        st.subheader("Dados Pessoais")
+        nome = st.text_input("Nome Completo*")
+        email = st.text_input("Email")
+        telefone = st.text_input("Telefone")
+
+        st.subheader("Endereço")
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            logradouro = st.text_input("Logradouro")
+        with col2:
+            numero = st.text_input("Número")
+
+        complemento = st.text_input("Complemento")
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            bairro = st.text_input("Bairro")
+        with col2:
+            cidade = st.text_input("Cidade")
+        with col3:
+            estado = st.text_input("Estado (UF)")
+
+        cep = st.text_input("CEP")
+
+        submitted = st.form_submit_button("💾 Salvar")
+
+        if submitted:
+            # Montar dicionário de dados
+            dados = {
+                'nome': nome,
+                'email': email,
+                'telefone': telefone,
+                'logradouro': logradouro,
+                'numero': numero,
+                'complemento': complemento,
+                'bairro': bairro,
+                'cidade': cidade,
+                'estado': estado,
+                'cep': cep
+            }
+
+            # Cadastrar com validação
+            if cadastrar_doador_com_validacao(dados):
+                # Limpar campos após sucesso
+                st.rerun()
+
+
+# ========== EXEMPLO: Tratamento de Erros em Operações CRUD ==========
+
+def atualizar_doador_seguro(doador_id: int, novos_dados: dict):
+    """Atualiza doador com tratamento de erros"""
+    try:
+        # 1. Buscar doador existente
+        doador = Doador.get_by_id(doador_id)
+        if not doador:
+            return False, "Doador não encontrado"
+
+        # 2. Atualizar campos
+        for campo, valor in novos_dados.items():
+            if hasattr(doador, campo) and valor is not None:
+                setattr(doador, campo, valor)
+
+        # 3. Validar
+        valido, erro = doador.validate()
+        if not valido:
+            return False, erro
+
+        # 4. Atualizar
+        if doador.update():
+            return True, "Atualizado com sucesso"
+        else:
+            return False, "Erro ao atualizar"
+
+    except Exception as e:
+        return False, f"Erro: {str(e)}"
+
+
+# Uso:
+sucesso, msg = atualizar_doador_seguro(
+    doador_id=1,
+    novos_dados={'email': 'novo@email.com', 'telefone': '(11) 99999-9999'}
+)
+
+if sucesso:
+    print(f"✅ {msg}")
+else:
+    print(f"❌ {msg}")
+```
+
+---
+
 ## 📚 Referências
 
 - [Python Type Hints](https://docs.python.org/3/library/typing.html)
 - [MySQL Connector Python](https://dev.mysql.com/doc/connector-python/en/)
 - [Context Managers](https://docs.python.org/3/library/contextlib.html)
+- [Streamlit Documentation](https://docs.streamlit.io/)
+- [PEP 8 Style Guide](https://www.python.org/dev/peps/pep-0008/)
+
+---
+
+## 💡 Dicas Finais
+
+### Performance
+
+- Use `get_by_id()` quando souber o ID específico
+- Prefira queries com filtros a buscar tudo e filtrar em Python
+- Use índices nas colunas mais consultadas
+
+### Segurança
+
+- Sempre valide dados de entrada
+- Use prepared statements (já implementado nos models)
+- Nunca confie em dados do usuário sem validação
+
+### Manutenibilidade
+
+- Siga o padrão existente ao criar novos models
+- Documente métodos complexos
+- Use type hints consistentemente
+- Escreva testes para novos métodos
 
 ---
 

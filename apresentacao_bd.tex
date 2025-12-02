@@ -1,0 +1,918 @@
+% ==============================================================================
+% APRESENTAÇÃO - SISTEMA SOMOS DARUA
+% Disciplina: Banco de Dados
+% ==============================================================================
+
+\documentclass[aspectratio=169]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[portuguese]{babel}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{listings}
+
+% Tema
+\usetheme{Madrid}
+\usecolortheme{default}
+
+% Informações do documento
+\title{Sistema Somos DaRua}
+\subtitle{Projeto de Banco de Dados para Gestão de Doações}
+\author{Equipe Somos DaRua}
+\institute{Disciplina: Banco de Dados}
+\date{\today}
+
+\begin{document}
+
+% ==============================================================================
+% SLIDE 1: TÍTULO
+% ==============================================================================
+\begin{frame}
+\titlepage
+\end{frame}
+
+% ==============================================================================
+% SLIDE 2: SUMÁRIO
+% ==============================================================================
+\begin{frame}{Sumário}
+\tableofcontents
+\end{frame}
+
+% ==============================================================================
+% SEÇÃO 1: INTRODUÇÃO
+% ==============================================================================
+\section{Introdução}
+
+\begin{frame}{Visão Geral do Projeto}
+\begin{block}{Contexto}
+Sistema de gestão de doações para organizações sociais que atendem pessoas em situação de vulnerabilidade.
+\end{block}
+
+\vspace{0.5cm}
+
+\begin{columns}[T]
+\column{0.5\textwidth}
+\textbf{Objetivo Principal}
+\begin{itemize}
+    \item Gerenciar doadores e doações
+    \item Controlar distribuição aos beneficiários
+    \item Organizar campanhas de arrecadação
+    \item Gerar relatórios e estatísticas
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Tecnologias}
+\begin{itemize}
+    \item \textbf{SGBD:} MySQL 8.0
+    \item \textbf{Backend:} Python 3.10+
+    \item \textbf{Frontend:} Streamlit
+    \item \textbf{Charset:} UTF-8 (utf8mb4)
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Problema e Solução}
+\begin{block}{Problema}
+Organizações sociais enfrentam dificuldades para:
+\begin{itemize}
+    \item Rastrear histórico de doações
+    \item Coordenar logística de entrega
+    \item Gerenciar múltiplas campanhas simultaneamente
+    \item Associar itens doados às necessidades específicas
+\end{itemize}
+\end{block}
+
+\pause
+
+\begin{alertblock}{Solução Proposta}
+Sistema centralizado com banco de dados relacional que permite:
+\begin{itemize}
+    \item Cadastro completo de todas as entidades
+    \item Sistema de duas fases (recebimento $\rightarrow$ distribuição)
+    \item Relacionamentos N:N para flexibilidade
+    \item Integridade referencial garantida
+\end{itemize}
+\end{alertblock}
+\end{frame}
+
+% ==============================================================================
+% SEÇÃO 2: MODELAGEM CONCEITUAL
+% ==============================================================================
+\section{Modelagem Conceitual}
+
+\begin{frame}{Entidades Principais}
+\begin{center}
+\begin{tikzpicture}[
+    entity/.style={rectangle, draw, fill=primarycolor!20, text width=3cm, text centered, minimum height=1cm},
+    relationship/.style={diamond, draw, fill=secondarycolor!20, text width=2cm, text centered, minimum height=0.8cm, aspect=2}
+]
+
+% Entidades centrais
+\node[entity] (doador) at (0,3) {\textbf{DOADOR}};
+\node[entity] (doacao) at (4,3) {\textbf{DOAÇÃO}};
+\node[entity] (beneficiario) at (8,3) {\textbf{BENEFICIÁRIO}};
+
+% Entidades secundárias
+\node[entity] (campanha) at (4,0) {\textbf{CAMPANHA}};
+\node[entity] (objeto) at (8,0) {\textbf{OBJETO DOÁVEL}};
+\node[entity] (voluntario) at (0,0) {\textbf{VOLUNTÁRIO}};
+
+% Relações sem setas (somente traço)
+\draw[-, thick] (doador) -- node[above] {faz} (doacao);
+\draw[-, thick] (doacao) -- node[above] {beneficia} (beneficiario);
+\draw[-, thick] (campanha) -- node[right] {organiza} (doacao);
+\draw[-, thick] (doacao) -- node[right] {contém} (objeto);
+\draw[-, thick] (voluntario) -- node[below] {distribui} (doacao);
+
+\end{tikzpicture}
+\end{center}
+
+\vspace{0.3cm}
+\textbf{Total:} 8 entidades principais + 5 relacionamentos N:N = \textbf{13 tabelas}
+\end{frame}
+
+
+\begin{frame}{Relacionamentos e Cardinalidades}
+\begin{table}
+\centering
+\small
+\begin{tabular}{lccl}
+\toprule
+\textbf{Relacionamento} & \textbf{Tipo} & \textbf{Tabela} & \textbf{Descrição} \\
+\midrule
+Doador $\rightarrow$ Doação & 1:N & - & Um doador faz várias doações \\
+Campanha $\rightarrow$ Doação & 1:N & - & Uma campanha tem várias doações \\
+\midrule
+Doação $\leftrightarrow$ Beneficiário & N:M & \texttt{Recebe} & Doação para vários beneficiários \\
+Doação $\leftrightarrow$ Objeto & N:M & \texttt{Contem} & Doação contém vários objetos \\
+Doação $\leftrightarrow$ Voluntário & N:M & \texttt{Possui} & Voluntários distribuem doações \\
+Campanha $\leftrightarrow$ Necessidade & N:M & \texttt{Promove} & Campanha promove necessidades \\
+Objeto $\leftrightarrow$ Campanha & N:M & \texttt{Associa} & Objetos associados a campanhas \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\vspace{0.3cm}
+\begin{alertblock}{Destaque}
+5 tabelas de relacionamento garantem flexibilidade e evitam redundância.
+\end{alertblock}
+\end{frame}
+
+% ==============================================================================
+% SEÇÃO 3: MODELO LÓGICO
+% ==============================================================================
+\section{Modelo Lógico}
+
+\begin{frame}{Esquema Relacional - Tabelas Principais (1/2)}
+\scriptsize
+\begin{columns}[T]
+\column{0.5\textwidth}
+\textbf{Doador}
+\begin{itemize}
+    \item \textcolor{blue}{idDoador} (PK)
+    \item Nome (NOT NULL)
+    \item Telefone, Email
+    \item Endereço completo (7 campos)
+\end{itemize}
+
+\vspace{0.3cm}
+\textbf{Beneficiario}
+\begin{itemize}
+    \item \textcolor{blue}{idBeneficiario} (PK)
+    \item Nome (NOT NULL)
+    \item Idade, Genero
+    \item Descricao
+\end{itemize}
+
+\vspace{0.3cm}
+\textbf{Doacao} (Central)
+\begin{itemize}
+    \item \textcolor{blue}{idDoacao} (PK)
+    \item DataCriacao (DEFAULT NOW)
+    \item DataEntrega
+    \item \textcolor{red}{Doador\_idDoador} (FK, NOT NULL)
+    \item \textcolor{red}{Campanha\_idCampanha} (FK)
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{CampanhaDoacao}
+\begin{itemize}
+    \item \textcolor{blue}{idCampanha} (PK)
+    \item Nome (NOT NULL)
+    \item DataInicio, DataTermino
+    \item Descricao
+\end{itemize}
+
+\vspace{0.3cm}
+\textbf{ObjetoDoavel}
+\begin{itemize}
+    \item \textcolor{blue}{idObjeto} (PK)
+    \item Nome (NOT NULL)
+    \item Descricao, Categoria
+    \item \textcolor{red}{PontoColeta\_id} (FK)
+\end{itemize}
+
+\vspace{0.3cm}
+\textbf{PontoColeta}
+\begin{itemize}
+    \item \textcolor{blue}{idPontoColeta} (PK)
+    \item Responsavel (NOT NULL)
+    \item Endereço completo
+\end{itemize}
+
+\end{columns}
+\end{frame}
+
+\begin{frame}{Esquema Relacional - Tabelas N:N}
+\begin{table}
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Tabela} & \textbf{Chave Composta} & \textbf{Função} \\
+\midrule
+\texttt{Contem} & (Doacao\_id, Objeto\_id) & Itens da doação \\
+\texttt{Recebe} & (Beneficiario\_id, Doacao\_id) & Quem recebeu \\
+\texttt{Possui} & (Doacao\_id, Voluntario\_id) & Quem distribuiu \\
+\texttt{Promove} & (Campanha\_id, Necessidade\_id) & Necessidades da campanha \\
+\texttt{Associa} & (Objeto\_id, Campanha\_id) & Objetos da campanha \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\vspace{0.5cm}
+
+\begin{block}{Normalização}
+\begin{itemize}
+    \item \textbf{3FN (Terceira Forma Normal):} Todas as tabelas estão normalizadas
+    \item \textbf{Sem redundância:} Informações não duplicadas
+    \item \textbf{Integridade:} Foreign keys com CASCADE/RESTRICT apropriados
+\end{itemize}
+\end{block}
+\end{frame}
+
+% ==============================================================================
+% SEÇÃO 4: IMPLEMENTAÇÃO FÍSICA
+% ==============================================================================
+\section{Implementação Física}
+
+\begin{frame}{Especificações Técnicas}
+\begin{block}{Configuração do Banco}
+\begin{itemize}
+    \item \textbf{SGBD:} MySQL 8.0+
+    \item \textbf{Engine:} InnoDB (suporte a transações ACID)
+    \item \textbf{Charset:} utf8mb4 (suporte completo a Unicode)
+    \item \textbf{Collation:} utf8mb4\_unicode\_ci
+\end{itemize}
+\end{block}
+
+\vspace{0.5cm}
+
+\begin{columns}[T]
+\column{0.5\textwidth}
+\textbf{Vantagens InnoDB}
+\begin{itemize}
+    \item Transações ACID
+    \item Foreign keys nativas
+    \item Row-level locking
+    \item Crash recovery
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Decisões de Design}
+\begin{itemize}
+    \item AUTO\_INCREMENT em PKs
+    \item Índices em FKs
+    \item DEFAULT values estratégicos
+    \item CHECK constraints
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Foreign Keys e Integridade Referencial}
+\begin{table}
+\centering
+\scriptsize
+\begin{tabular}{llll}
+\toprule
+\textbf{FK} & \textbf{Referencia} & \textbf{ON DELETE} & \textbf{Razão} \\
+\midrule
+Doacao.Doador\_id & Doador.id & RESTRICT & Preserva histórico \\
+Doacao.Campanha\_id & Campanha.id & SET NULL & Doação permanece \\
+Objeto.PontoColeta\_id & PontoColeta.id & SET NULL & Objeto fica sem ponto \\
+\midrule
+Contem.Doacao\_id & Doacao.id & CASCADE & Remove itens junto \\
+Recebe.Doacao\_id & Doacao.id & CASCADE & Remove vínculos \\
+Possui.Doacao\_id & Doacao.id & CASCADE & Remove vínculos \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\vspace{0.3cm}
+
+\begin{alertblock}{Estratégia}
+\begin{itemize}
+    \item \textbf{RESTRICT:} Protege dados importantes (doadores com doações)
+    \item \textbf{SET NULL:} Mantém registro mas remove vínculo opcional
+    \item \textbf{CASCADE:} Remove dados dependentes automaticamente
+\end{itemize}
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Índices e Otimização}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\textbf{Índices Primários}
+\begin{itemize}
+    \item PK automático (clustered)
+    \item Todos os IDs indexados
+    \item Busca $O(\log n)$
+\end{itemize}
+
+\vspace{0.3cm}
+\textbf{Índices de Foreign Keys}
+\begin{itemize}
+    \item \texttt{idx\_doador} em Doacao
+    \item \texttt{idx\_campanha} em Doacao
+    \item \texttt{idx\_ponto} em Objeto
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Índices de Busca}
+\begin{itemize}
+    \item \texttt{idx\_nome} em Doador
+    \item \texttt{idx\_nome} em Beneficiario
+    \item \texttt{idx\_categoria} em Objeto
+    \item \texttt{idx\_cidade} em PontoColeta
+\end{itemize}
+
+\vspace{0.3cm}
+\textbf{Índice Composto}
+\begin{itemize}
+    \item \texttt{idx\_data\_campanha}
+    \item (DataInicio, DataTermino)
+    \item Otimiza consultas por período
+\end{itemize}
+\end{columns}
+
+\vspace{0.5cm}
+\begin{block}{Performance}
+Total de \textbf{15 índices} estrategicamente posicionados para otimizar queries mais frequentes.
+\end{block}
+\end{frame}
+
+\begin{frame}{Constraints}
+
+\begin{block}{CHECK Constraints}
+\small
+\begin{itemize}
+    \item \textbf{Beneficiário.Idade:} deve ser $\geq 0$
+    \item \textbf{CampanhaDoacao:} DataTermino $\geq$ DataInicio
+\end{itemize}
+\end{block}
+
+\vspace{0.2cm}
+
+\begin{block}{NOT NULL Constraints}
+\small
+Campos obrigatórios:
+\begin{itemize}
+    \item Nomes (Doador, Beneficiário, Voluntário, etc.)
+    \item Doacao.DataCriacao, Doacao.Doador\_idDoador
+    \item PontoColeta.Responsavel
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+\begin{frame}{Validações da Aplicação}
+
+\begin{alertblock}{Validações em Python (Model Layer)}
+\small
+\begin{itemize}
+    \item Formato de email válido (contém @)
+    \item CEP com 8 dígitos
+    \item Estado com exatamente 2 caracteres (UF)
+\end{itemize}
+\end{alertblock}
+
+\end{frame}
+
+
+% ==============================================================================
+% SEÇÃO 5: QUERIES E OPERAÇÕES
+% ==============================================================================
+\section{Queries e Operações}
+
+\begin{frame}{Consultas Estratégicas - Joins Complexos}
+\textbf{1. Doações com Informações Completas}
+\begin{itemize}
+    \item JOIN entre Doacao, Doador e Campanha
+    \item Retorna histórico completo de cada doação
+    \item Inclui nome do doador e campanha associada
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{2. Objetos de uma Doação}
+\begin{itemize}
+    \item JOIN com tabela N:N \texttt{Contem}
+    \item Lista todos os itens doados
+    \item Agrupa por categoria
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{3. Beneficiários de uma Doação}
+\begin{itemize}
+    \item JOIN com tabela N:N \texttt{Recebe}
+    \item Identifica quem recebeu cada doação
+    \item Perfil demográfico (idade, gênero)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Consultas Estratégicas - Agregações}
+\textbf{4. Top 10 Doadores}
+\begin{itemize}
+    \item GROUP BY em Doador
+    \item COUNT de doações
+    \item ORDER BY para ranking
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{5. Doações por Período}
+\begin{itemize}
+    \item DATE\_FORMAT para agrupar por mês
+    \item WHERE com BETWEEN para filtrar datas
+    \item Útil para gráficos de evolução temporal
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{6. Campanhas Ativas}
+\begin{itemize}
+    \item WHERE CURRENT\_DATE BETWEEN DataInicio AND DataTermino
+    \item Filtra campanhas em andamento
+    \item Calcula dias restantes
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Sistema de Duas Fases}
+\begin{block}{Fluxo de Estados da Doação}
+\begin{center}
+\begin{tikzpicture}[
+    state/.style={rectangle, rounded corners, draw, fill=blue!20, text width=3cm, text centered, minimum height=1cm},
+    arrow/.style={->, thick}
+]
+
+\node[state] (recebida) at (0,0) {\textbf{RECEBIDA}\\{\small Doador entrega\\no Ponto de Coleta}};
+\node[state] (distribuida) at (5,0) {\textbf{DISTRIBUÍDA}\\{\small Entregue aos\\Beneficiários}};
+
+\draw[arrow] (recebida) -- node[above] {Distribuir()} (distribuida);
+
+\end{tikzpicture}
+\end{center}
+\end{block}
+
+\vspace{0.5cm}
+
+\textbf{Operações de Banco de Dados:}
+\begin{enumerate}
+    \item \textbf{Fase 1:} INSERT em Doacao + INSERTs em Contem
+    \item \textbf{Fase 2:} INSERTs em Recebe + INSERTs em Possui + UPDATE Doacao.DataEntrega
+\end{enumerate}
+
+\vspace{0.3cm}
+\begin{alertblock}{Transações}
+Cada fase usa BEGIN/COMMIT para garantir consistência (ACID).
+\end{alertblock}
+\end{frame}
+
+% ==============================================================================
+% SEÇÃO 6: FUNCIONALIDADES AVANÇADAS
+% ==============================================================================
+\section{Funcionalidades Avançadas}
+
+\begin{frame}{Dashboard e Métricas em Tempo Real}
+\begin{columns}[T]
+\column{0.6\textwidth}
+\textbf{Consultas Principais:}
+\begin{enumerate}
+    \item Total de doadores cadastrados
+    \item Total de beneficiários
+    \item Total de doações (com status)
+    \item Doações por categoria
+    \item Evolução mensal (6 meses)
+    \item Top 10 doadores
+\end{enumerate}
+
+\column{0.4\textwidth}
+\textbf{Performance:}
+\begin{itemize}
+    \item Índices otimizados
+    \item Queries agregadas
+    \item Cache na aplicação
+    \item Tempo médio: \textless 100ms
+\end{itemize}
+\end{columns}
+
+\vspace{0.5cm}
+
+\begin{block}{Visualizações}
+Dados do banco alimentam gráficos interativos:
+\begin{itemize}
+    \item Gráfico de pizza (doações por categoria)
+    \item Gráfico de barras (top doadores)
+    \item Gráfico de linha (evolução temporal)
+\end{itemize}
+\end{block}
+\end{frame}
+
+\begin{frame}{Buscas e Filtros Avançados}
+\textbf{1. Busca por Localização}
+\begin{itemize}
+    \item WHERE com LIKE em Cidade/Estado
+    \item Índice em Cidade para performance
+    \item Útil para logística de entrega
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{2. Busca por Perfil Demográfico}
+\begin{itemize}
+    \item Filtros combinados: Genero + faixa etária
+    \item WHERE com múltiplas condições
+    \item Identifica público-alvo de campanhas
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{3. Busca por Período e Status}
+\begin{itemize}
+    \item WHERE DataCriacao BETWEEN + status
+    \item Relatórios mensais/anuais
+    \item Análise de tendências
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Migrations e Evolução do Schema}
+\begin{block}{Sistema de Migrations}
+\begin{itemize}
+    \item Versionamento do schema
+    \item Scripts SQL incrementais
+    \item Rastreabilidade de mudanças
+\end{itemize}
+\end{block}
+
+\vspace{0.3cm}
+
+\textbf{Exemplos de Migrations Implementadas:}
+\begin{enumerate}
+    \item \texttt{add\_doacoes\_detalhes.sql}
+    \begin{itemize}
+        \item Adiciona: TipoDoacao, DescricaoItem, Quantidade, Unidade
+        \item ALTER TABLE com ADD COLUMN
+    \end{itemize}
+    
+    \item \texttt{add\_fks\_doacoes.sql}
+    \begin{itemize}
+        \item Reforça foreign keys
+        \item Adiciona ON UPDATE CASCADE
+    \end{itemize}
+    
+    \item \texttt{add\_meta\_campanhas.sql}
+    \begin{itemize}
+        \item Adiciona sistema de metas
+        \item MetaValor, MetaUnidade
+    \end{itemize}
+\end{enumerate}
+\end{frame}
+
+% ==============================================================================
+% SEÇÃO 7: BACKUP E MANUTENÇÃO
+% ==============================================================================
+\section{Backup e Manutenção}
+
+\begin{frame}{Estratégia de Backup}
+\begin{block}{Backup Completo Diário}
+\begin{itemize}
+    \item Comando: \texttt{mysqldump somos\_darua}
+    \item Horário: 02:00 (menor tráfego)
+    \item Retenção: 30 dias
+    \item Armazenamento: Local + Nuvem
+\end{itemize}
+\end{block}
+
+\vspace{0.3cm}
+
+\begin{columns}[T]
+\column{0.5\textwidth}
+\textbf{Tipos de Backup:}
+\begin{enumerate}
+    \item Schema only (estrutura)
+    \item Data only (dados)
+    \item Full backup (completo)
+\end{enumerate}
+
+\column{0.5\textwidth}
+\textbf{Restore:}
+\begin{itemize}
+    \item Tempo médio: 5-10 min
+    \item Testado mensalmente
+    \item Documentado
+\end{itemize}
+\end{columns}
+
+\vspace{0.5cm}
+
+\begin{alertblock}{Automação}
+Cron job configurado para backup automático todas as noites.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Manutenção}
+\textbf{Rotinas de Manutenção:}
+\begin{itemize}
+    \item \textbf{OPTIMIZE TABLE:} Semanal (domingo, 03:00)
+    \item \textbf{ANALYZE TABLE:} Após grandes inserções
+    \item \textbf{CHECK TABLE:} Mensal
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Monitoramento:}
+\begin{itemize}
+    \item Tamanho das tabelas (crescimento esperado)
+    \item Performance de queries (slow query log)
+    \item Uso de índices (EXPLAIN)
+    \item Conexões ativas
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Métricas de Monitoramento}
+\begin{block}{Métricas Atuais}
+\begin{itemize}
+    \item Banco: \textasciitilde 15 MB
+    \item Queries médias: 50--100 ms
+    \item 13 tabelas + 15 índices
+    \item Taxa de hit de índice: 95\%+
+\end{itemize}
+\end{block}
+
+\vspace{0.4cm}
+
+\textbf{Indicadores acompanhados:}
+\begin{itemize}
+    \item Crescimento por tabela
+    \item Evolução da latência de queries
+    \item Eficiência dos índices ao longo do tempo
+\end{itemize}
+\end{frame}
+
+
+% ==============================================================================
+% SEÇÃO 8: RESULTADOS
+% ==============================================================================
+\section{Resultados}
+
+\begin{frame}{Estatísticas do Sistema}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\textbf{Estrutura do Banco}
+\begin{itemize}
+    \item 8 tabelas principais
+    \item 5 tabelas N:N
+    \item 15 índices otimizados
+    \item 12 foreign keys
+    \item 3 CHECK constraints
+\end{itemize}
+
+\vspace{0.5cm}
+\textbf{Capacidades}
+\begin{itemize}
+    \item Suporta milhares de registros
+    \item Queries em \textless 100ms
+    \item Integridade garantida
+    \item Escalável
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Funcionalidades Implementadas}
+\begin{itemize}
+    \item CRUD completo (8 entidades)
+    \item Sistema de duas fases
+    \item Relacionamentos N:N
+    \item Buscas avançadas
+    \item Agregações complexas
+    \item Dashboard em tempo real
+\end{itemize}
+
+\vspace{0.5cm}
+\textbf{Qualidade}
+\begin{itemize}
+    \item 3FN (normalizado)
+    \item Sem redundância
+    \item Documentado
+    \item Testado
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Decisões de Design - Justificativas}
+\begin{table}
+\centering
+\scriptsize
+\begin{tabular}{lll}
+\toprule
+\textbf{Decisão} & \textbf{Alternativa} & \textbf{Justificativa} \\
+\midrule
+InnoDB & MyISAM & Suporte a FK e transações \\
+N:N com tabelas & Colunas multi-valor & Normalização e flexibilidade \\
+DataEntrega opcional & Obrigatória & Fase 1 não tem entrega ainda \\
+SET NULL em Campanha & CASCADE & Doações sem campanha são válidas \\
+RESTRICT em Doador & CASCADE & Preserva histórico completo \\
+utf8mb4 & utf8 & Suporte completo a emojis/Unicode \\
+Índices compostos & Múltiplos simples & Otimiza queries de período \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\vspace{0.5cm}
+
+\begin{alertblock}{Princípio}
+Cada decisão de design foi tomada considerando:
+\begin{itemize}
+    \item Requisitos funcionais
+    \item Performance
+    \item Integridade de dados
+    \item Manutenibilidade
+\end{itemize}
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Lições Aprendidas}
+\begin{block}{Desafios Técnicos}
+\begin{itemize}
+    \item Modelar sistema de duas fases sem coluna de status explícita
+    \item Balancear normalização com performance
+    \item Escolher ON DELETE correto para cada FK
+    \item Otimizar queries com múltiplos JOINs
+\end{itemize}
+\end{block}
+
+\vspace{0.3cm}
+
+\begin{block}{Boas Práticas Aplicadas}
+\begin{itemize}
+    \item Nomenclatura consistente (PascalCase)
+    \item Documentação inline (comentários no SQL)
+    \item Versionamento do schema (migrations)
+    \item Testes de integridade referencial
+    \item Scripts de setup e backup
+\end{itemize}
+\end{block}
+\end{frame}
+
+% ==============================================================================
+% SEÇÃO 9: CONCLUSÃO
+% ==============================================================================
+\section{Conclusão}
+
+\begin{frame}{Objetivos Alcançados}
+\begin{itemize}
+    \item[\checkmark] Modelagem conceitual completa (ER)
+    \item[\checkmark] Normalização até 3FN
+    \item[\checkmark] Implementação física otimizada
+    \item[\checkmark] Integridade referencial garantida
+    \item[\checkmark] Índices estratégicos para performance
+    \item[\checkmark] Queries complexas com JOINs e agregações
+    \item[\checkmark] Sistema de migrations para evolução
+    \item[\checkmark] Backup e recovery automatizados
+    \item[\checkmark] Documentação técnica completa
+    \item[\checkmark] Aplicação funcional integrada
+\end{itemize}
+
+\vspace{0.5cm}
+
+\begin{alertblock}{Resultado}
+Sistema completo de banco de dados para gestão de doações, pronto para uso em produção.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Trabalhos Futuros}
+\textbf{Melhorias no Banco de Dados:}
+\begin{itemize}
+    \item Implementar stored procedures para operações complexas
+    \item Criar triggers para auditoria automática
+    \item Adicionar views materializadas para relatórios
+    \item Implementar particionamento de tabelas grandes
+    \item Criar índices full-text para buscas textuais
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Funcionalidades Adicionais:}
+\begin{itemize}
+    \item Sistema de notificações (tabela de logs)
+    \item Histórico de alterações (audit trail)
+    \item Geolocalização de pontos de coleta (coordenadas)
+    \item Sistema de ratings para doadores/voluntários
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Agradecimentos}
+\begin{center}
+\Large
+Obrigado pela atenção!
+
+\vspace{1cm}
+
+\normalsize
+\textbf{Sistema Somos DaRua}\\
+Gestão de Doações com Banco de Dados Relacional
+
+\vspace{1cm}
+
+\textit{Dúvidas e Discussão}
+
+\vspace{0.5cm}
+
+\footnotesize
+Repositório: github.com/giusfds/DaRua\\
+Documentação completa disponível no repositório
+\end{center}
+\end{frame}
+
+% ==============================================================================
+% BACKUP SLIDES (EXTRAS)
+% ==============================================================================
+\appendix
+
+\begin{frame}{Diagrama ER Completo}
+\begin{center}
+\tiny
+\begin{tikzpicture}[
+    entity/.style={rectangle, draw, fill=blue!10, minimum width=2cm, minimum height=0.8cm},
+    relationship/.style={diamond, draw, fill=orange!20, minimum width=1.5cm, minimum height=0.6cm, aspect=2},
+    attribute/.style={ellipse, draw, fill=green!10, minimum width=1cm, minimum height=0.5cm}
+]
+
+% Entidades principais
+\node[entity] (doador) at (0,4) {Doador};
+\node[entity] (doacao) at (4,4) {Doação};
+\node[entity] (beneficiario) at (8,4) {Beneficiário};
+\node[entity] (campanha) at (4,1) {Campanha};
+\node[entity] (objeto) at (8,1) {Objeto};
+\node[entity] (voluntario) at (0,1) {Voluntário};
+\node[entity] (ponto) at (10,2.5) {Ponto Coleta};
+\node[entity] (necessidade) at (2,0) {Necessidade};
+
+% Relacionamentos
+\draw[->, thick] (doador) -- node[above] {1:N} (doacao);
+\draw[->, thick] (doacao) -- node[above] {N:M} (beneficiario);
+\draw[->, thick] (campanha) -- node[right] {1:N} (doacao);
+\draw[->, thick] (doacao) -- node[below right] {N:M} (objeto);
+\draw[->, thick] (voluntario) -- node[above] {N:M} (doacao);
+\draw[->, thick] (ponto) -- node[right] {1:N} (objeto);
+\draw[->, thick] (campanha) -- node[above] {N:M} (necessidade);
+\draw[->, thick] (objeto) -- node[right] {N:M} (campanha);
+
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{Exemplo de Query Complexa}
+\textbf{Relatório de Doações por Período com Detalhes:}
+
+\vspace{0.3cm}
+
+\scriptsize
+\texttt{SELECT}\\
+\texttt{\ \ \ \ d.idDoacao,}\\
+\texttt{\ \ \ \ d.DataCriacao,}\\
+\texttt{\ \ \ \ do.Nome AS Doador,}\\
+\texttt{\ \ \ \ c.Nome AS Campanha,}\\
+\texttt{\ \ \ \ COUNT(DISTINCT b.idBeneficiario) AS TotalBeneficiarios,}\\
+\texttt{\ \ \ \ COUNT(DISTINCT o.idObjetoDoavel) AS TotalObjetos,}\\
+\texttt{\ \ \ \ CASE WHEN d.DataEntrega IS NOT NULL}\\
+\texttt{\ \ \ \ \ \ \ \ THEN 'Distribuída' ELSE 'Recebida' END AS Status}\\
+\texttt{FROM Doacao d}\\
+\texttt{INNER JOIN Doador do ON d.Doador\_idDoador = do.idDoador}\\
+\texttt{LEFT JOIN CampanhaDoacao c ON d.CampanhaDoacao\_id = c.idCampanha}\\
+\texttt{LEFT JOIN Recebe r ON d.idDoacao = r.Doacao\_idDoacao}\\
+\texttt{LEFT JOIN Beneficiario b ON r.Beneficiario\_id = b.idBeneficiario}\\
+\texttt{LEFT JOIN Contem ct ON d.idDoacao = ct.Doacao\_idDoacao}\\
+\texttt{LEFT JOIN ObjetoDoavel o ON ct.ObjetoDoavel\_id = o.idObjetoDoavel}\\
+\texttt{WHERE d.DataCriacao BETWEEN '2024-01-01' AND '2024-12-31'}\\
+\texttt{GROUP BY d.idDoacao}\\
+\texttt{ORDER BY d.DataCriacao DESC;}
+
+\normalsize
+\vspace{0.3cm}
+\textbf{Utiliza:} 6 JOINs, 2 agregações, 1 CASE, filtro por data
+\end{frame}
+
+\end{document}

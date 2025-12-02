@@ -2,10 +2,12 @@
 
 > **Sistema completo de gestão de doações para organizações sociais que atendem pessoas em situação de vulnerabilidade**
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)](https://streamlit.io/)
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.31.0-red.svg)](https://streamlit.io/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0+-orange.svg)](https://www.mysql.com/)
 [![License](https://img.shields.io/badge/License-Academic-green.svg)]()
+[![Code Style](https://img.shields.io/badge/code%20style-PEP8-black)](https://www.python.org/dev/peps/pep-0008/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 ---
 
@@ -22,6 +24,7 @@
 - [Fluxos de Trabalho](#-fluxos-de-trabalho)
 - [Estrutura de Diretórios](#-estrutura-de-diretórios)
 - [Desenvolvimento](#-desenvolvimento)
+- [Como Contribuir](#-como-contribuir)
 - [Equipe](#-equipe)
 
 ---
@@ -33,6 +36,7 @@ O **Somos DaRua** é um sistema web desenvolvido para facilitar a gestão de doa
 ### 🌟 Problema Resolvido
 
 Organizações sociais frequentemente enfrentam dificuldades para:
+
 - Rastrear o histórico de doações
 - Associar itens específicos às necessidades de beneficiários
 - Coordenar a logística de entrega
@@ -42,6 +46,7 @@ Organizações sociais frequentemente enfrentam dificuldades para:
 ### 💡 Solução Proposta
 
 Um sistema centralizado que permite:
+
 - ✅ Cadastro completo de doadores, beneficiários e voluntários
 - ✅ Registro detalhado de doações (tipo, quantidade, origem)
 - ✅ Sistema de duas fases (recebimento → distribuição)
@@ -54,6 +59,7 @@ Um sistema centralizado que permite:
 ## 🚀 Funcionalidades Principais
 
 ### 1. Gestão de Doadores
+
 - Cadastro completo com dados de contato e endereço
 - Busca e filtros avançados
 - Histórico de doações por doador
@@ -62,40 +68,48 @@ Um sistema centralizado que permite:
 ### 2. Sistema de Doações (Duas Fases)
 
 #### **Fase 1: Recebimento**
+
 ```
 Doador entrega → Ponto de Coleta → Voluntário registra → Status: "Recebida"
 ```
+
 - Registro de tipo, item, quantidade e unidade
 - Vinculação opcional com campanhas
 - Observações e previsão de entrega
 
 #### **Fase 2: Distribuição**
+
 ```
 Doação "Recebida" → Seleciona beneficiários → Voluntários entregam → Status: "Distribuída"
 ```
+
 - Associação com múltiplos beneficiários
 - Seleção de voluntários distribuidores
 - Atualização automática de status
 
 ### 3. Campanhas de Doação
+
 - Criação com nome, descrição e período
 - Definição de metas (R$, Kg, Unidades, etc.)
 - Acompanhamento de progresso em tempo real
 - Barra de progresso visual
 
 ### 4. Dashboard e Relatórios
+
 - Métricas principais atualizadas em tempo real
 - Gráficos interativos (doações por categoria, evolução mensal, ranking)
 - Últimas doações registradas
 - Relatórios detalhados com filtros
 
 ### 5. Gestão de Beneficiários
+
 - Cadastro com idade, gênero e necessidades
 - Filtros por status (Ativo, Inativo, Aguardando)
 - Histórico de doações recebidas
 - Gráficos de distribuição demográfica
 
 ### 6. Pontos de Coleta e Voluntários
+
 - Cadastro de locais estratégicos
 - Gestão de voluntários e suas atribuições
 - Controle de responsáveis
@@ -105,6 +119,7 @@ Doação "Recebida" → Seleciona beneficiários → Voluntários entregam → S
 ## 🏗️ Arquitetura do Sistema
 
 O sistema utiliza uma **arquitetura em 3 camadas**:
+
 ```
 ┌─────────────────────────────────────────┐
 │         FRONTEND (Streamlit)            │
@@ -133,6 +148,7 @@ O sistema utiliza uma **arquitetura em 3 camadas**:
 ### Camadas Explicadas
 
 #### 🎨 **Frontend (Streamlit)**
+
 - Interface web interativa
 - Páginas navegáveis via sidebar
 - Gráficos com Plotly
@@ -140,6 +156,7 @@ O sistema utiliza uma **arquitetura em 3 camadas**:
 - **Localização:** `/app`
 
 #### 🧠 **Backend (Models Python)**
+
 - Classes Python para cada entidade
 - Validações de negócio
 - Operações CRUD
@@ -147,6 +164,7 @@ O sistema utiliza uma **arquitetura em 3 camadas**:
 - **Localização:** `/backend/models`
 
 #### 💾 **Database (MySQL)**
+
 - Persistência de dados
 - Relacionamentos N:N
 - Integridade referencial
@@ -157,11 +175,13 @@ O sistema utiliza uma **arquitetura em 3 camadas**:
 ## 💻 Tecnologias Utilizadas
 
 ### Core
+
 - **Python 3.8+** - Linguagem principal
 - **Streamlit 1.28+** - Framework web
 - **MySQL 8.0+** - Banco de dados relacional
 
 ### Bibliotecas Python
+
 ```python
 streamlit          # Interface web
 pandas             # Manipulação de dados
@@ -171,6 +191,7 @@ python-dotenv      # Variáveis de ambiente
 ```
 
 ### Ferramentas de Desenvolvimento
+
 - **Git** - Controle de versão
 - **Figma** - Prototipação da UI
 - **MySQL Workbench** - Gerenciamento do banco
@@ -180,6 +201,7 @@ python-dotenv      # Variáveis de ambiente
 ## 🗄️ Estrutura do Banco de Dados
 
 ### Diagrama ER Simplificado
+
 ```
 ┌─────────┐       ┌─────────┐       ┌──────────────┐
 │ Doador  │──────>│ Doacao  │<──────│ Beneficiario │
@@ -197,28 +219,29 @@ python-dotenv      # Variáveis de ambiente
 
 ### 📊 Tabelas Principais (8)
 
-| Tabela | Descrição | Campos Principais |
-|--------|-----------|-------------------|
-| **Doador** | Pessoas/empresas que doam | Nome, Email, Telefone, Endereço |
-| **Beneficiario** | Quem recebe doações | Nome, Idade, Gênero, Descrição |
-| **Doacao** | Registro de doações | TipoDoacao, Quantidade, Unidade, Status |
-| **CampanhaDoacao** | Campanhas organizadas | Nome, Meta, Arrecadado, Período |
-| **PontoColeta** | Locais de coleta | Responsável, Endereço |
-| **Voluntario** | Colaboradores | Nome, Email, Telefone |
-| **ObjetoDoavel** | Itens doáveis | Nome, Categoria |
-| **Necessidade** | Necessidades prioritárias | Descrição |
+| Tabela             | Descrição                 | Campos Principais                       |
+| ------------------ | ------------------------- | --------------------------------------- |
+| **Doador**         | Pessoas/empresas que doam | Nome, Email, Telefone, Endereço         |
+| **Beneficiario**   | Quem recebe doações       | Nome, Idade, Gênero, Descrição          |
+| **Doacao**         | Registro de doações       | TipoDoacao, Quantidade, Unidade, Status |
+| **CampanhaDoacao** | Campanhas organizadas     | Nome, Meta, Arrecadado, Período         |
+| **PontoColeta**    | Locais de coleta          | Responsável, Endereço                   |
+| **Voluntario**     | Colaboradores             | Nome, Email, Telefone                   |
+| **ObjetoDoavel**   | Itens doáveis             | Nome, Categoria                         |
+| **Necessidade**    | Necessidades prioritárias | Descrição                               |
 
 ### 🔗 Tabelas de Relacionamento N:N (5)
 
-| Tabela | Relacionamento | Descrição |
-|--------|---------------|-----------|
-| **Recebe** | Beneficiario ↔ Doacao | Quem recebeu cada doação |
-| **Possui** | Doacao ↔ Voluntario | Voluntários que distribuíram |
-| **Contem** | Doacao ↔ ObjetoDoavel | Itens em cada doação |
-| **Promove** | CampanhaDoacao ↔ Necessidade | Necessidades de campanhas |
-| **Associa** | ObjetoDoavel ↔ CampanhaDoacao | Objetos vinculados |
+| Tabela      | Relacionamento                | Descrição                    |
+| ----------- | ----------------------------- | ---------------------------- |
+| **Recebe**  | Beneficiario ↔ Doacao         | Quem recebeu cada doação     |
+| **Possui**  | Doacao ↔ Voluntario           | Voluntários que distribuíram |
+| **Contem**  | Doacao ↔ ObjetoDoavel         | Itens em cada doação         |
+| **Promove** | CampanhaDoacao ↔ Necessidade  | Necessidades de campanhas    |
+| **Associa** | ObjetoDoavel ↔ CampanhaDoacao | Objetos vinculados           |
 
 ### 🔑 Campos Importantes na Tabela Doacao
+
 ```sql
 idDoacao                        INT PRIMARY KEY AUTO_INCREMENT
 Doador_idDoador                 INT NOT NULL  -- Quem doou
@@ -243,6 +266,7 @@ Observacoes                     TEXT          -- Observações
 ## 📥 Guia de Instalação
 
 ### Pré-requisitos
+
 ```bash
 ✅ Python 3.8 ou superior
 ✅ MySQL 8.0 ou superior
@@ -251,12 +275,14 @@ Observacoes                     TEXT          -- Observações
 ```
 
 ### Passo 1: Clonar o Repositório
+
 ```bash
 git clone https://github.com/seu-usuario/somos-darua.git
 cd somos-darua
 ```
 
 ### Passo 2: Criar Ambiente Virtual
+
 ```bash
 # Windows
 python -m venv venv
@@ -268,11 +294,13 @@ source venv/bin/activate
 ```
 
 ### Passo 3: Instalar Dependências
+
 ```bash
 pip install -r requirements.txt
 ```
 
 **Conteúdo do `requirements.txt`:**
+
 ```
 streamlit>=1.28.0
 pandas>=2.0.0
@@ -284,6 +312,7 @@ python-dotenv>=1.0.0
 ### Passo 4: Configurar Variáveis de Ambiente
 
 Crie um arquivo `.env` na raiz do projeto:
+
 ```bash
 # .env
 DB_HOST=localhost
@@ -296,11 +325,13 @@ DB_PORT=3306
 ### Passo 5: Criar o Banco de Dados
 
 #### Opção A: Script Automático
+
 ```bash
 python3 backend/database/setup.py
 ```
 
 #### Opção B: Manual via MySQL
+
 ```bash
 mysql -u root -p < database/schema/create_database.sql
 ```
@@ -308,6 +339,7 @@ mysql -u root -p < database/schema/create_database.sql
 ### Passo 6: Executar Migrations
 
 Execute **na ordem**:
+
 ```bash
 mysql -u root -p somos_darua < database/migrations/add_doacoes_detalhes.sql
 mysql -u root -p somos_darua < database/migrations/add_fks_doacoes.sql
@@ -315,11 +347,13 @@ mysql -u root -p somos_darua < database/migrations/add_meta_campanhas.sql
 ```
 
 ### Passo 7: Testar Conexão
+
 ```bash
 python3 backend/database/connection.py
 ```
 
 **Saída esperada:**
+
 ```
 ✓ Conectado ao MySQL versão 8.0.xx
 ✓ Banco atual: somos_darua
@@ -328,6 +362,7 @@ python3 backend/database/connection.py
 ```
 
 ### Passo 8: Iniciar a Aplicação
+
 ```bash
 streamlit run app/main.py
 ```
@@ -341,6 +376,7 @@ A aplicação estará disponível em: **http://localhost:8501**
 ### Fluxo Completo: Da Doação até a Distribuição
 
 #### 1️⃣ **Preparação Inicial (Cadastros)**
+
 ```
 a) Cadastrar Doador
    └─> Página: 👤 Doadores
@@ -369,6 +405,7 @@ e) Criar Campanha (Opcional)
 ```
 
 #### 2️⃣ **Registrar Nova Doação (Fase 1: Recebimento)**
+
 ```
 1. Ir para: 📦 Doações → Aba "Nova Doação"
 
@@ -394,6 +431,7 @@ e) Criar Campanha (Opcional)
 ```
 
 #### 3️⃣ **Distribuir Doação (Fase 2: Distribuição)**
+
 ```
 1. Ir para: 📦 Doações → Aba "Distribuir Doação"
 
@@ -417,6 +455,7 @@ e) Criar Campanha (Opcional)
 ```
 
 #### 4️⃣ **Acompanhar no Dashboard**
+
 ```
 1. Ir para: 🏠 Dashboard
 
@@ -435,6 +474,7 @@ e) Criar Campanha (Opcional)
 ```
 
 #### 5️⃣ **Gerar Relatórios**
+
 ```
 1. Ir para: 📊 Relatórios
 
@@ -461,6 +501,7 @@ e) Criar Campanha (Opcional)
 **Objetivo:** Visão geral do sistema
 
 **Elementos:**
+
 - 4 Cards de métricas principais
 - Gráfico de Pizza: Doações por categoria
 - Gráfico de Barras: Doações mensais
@@ -477,6 +518,7 @@ e) Criar Campanha (Opcional)
 **Objetivo:** CRUD completo de doadores
 
 **Funcionalidades:**
+
 - ➕ Cadastrar novo doador
 - 🔍 Buscar por nome/email/telefone
 - ✏️ Editar informações
@@ -484,11 +526,13 @@ e) Criar Campanha (Opcional)
 - 📊 Estatísticas: Total, Ativos, Cadastros do mês
 
 **Campos:**
-- Nome* (obrigatório)
+
+- Nome\* (obrigatório)
 - Email, Telefone
 - Endereço completo (Rua, Número, Bairro, Cidade, Estado, CEP)
 
 **Validações:**
+
 - Email válido (@)
 - Estado com 2 caracteres
 - CEP formato 00000-000
@@ -500,6 +544,7 @@ e) Criar Campanha (Opcional)
 **Objetivo:** CRUD completo de beneficiários
 
 **Funcionalidades:**
+
 - ➕ Cadastrar novo beneficiário
 - 🔍 Filtrar por status (Ativo/Inativo/Aguardando)
 - 🔍 Buscar por nome
@@ -510,7 +555,8 @@ e) Criar Campanha (Opcional)
   - Faixa etária (0-17, 18-29, 30-49, 50-64, 65+)
 
 **Campos:**
-- Nome* (obrigatório)
+
+- Nome\* (obrigatório)
 - Data de Nascimento → Idade (calculada automaticamente)
 - Gênero (M/F/O/Prefiro não informar)
 - Descrição da situação
@@ -526,18 +572,21 @@ e) Criar Campanha (Opcional)
 **Abas:**
 
 #### **Aba 1: Nova Doação (Recebimento)**
+
 Formulário com 3 seções:
 
 1. **Identificação (Obrigatório)**
-   - Doador *
-   - Ponto de Coleta *
-   - Voluntário Responsável *
+
+   - Doador \*
+   - Ponto de Coleta \*
+   - Voluntário Responsável \*
 
 2. **Detalhes da Doação**
-   - Tipo de Doação *
-   - Descrição do Item *
-   - Quantidade *
-   - Unidade *
+
+   - Tipo de Doação \*
+   - Descrição do Item \*
+   - Quantidade \*
+   - Unidade \*
 
 3. **Informações Adicionais (Opcional)**
    - Campanha
@@ -545,6 +594,7 @@ Formulário com 3 seções:
    - Observações
 
 #### **Aba 2: Distribuir Doação**
+
 1. Seleção (Dropdown com doações "Recebidas")
 2. Detalhes da Doação (Exibe informações completas)
 3. Beneficiários (Checkboxes para selecionar múltiplos)
@@ -552,12 +602,14 @@ Formulário com 3 seções:
 5. Data de Entrega
 
 **Ao confirmar:**
+
 - ✅ Cria registros na tabela Recebe
 - ✅ Cria registros na tabela Possui
 - ✅ Atualiza status para "Distribuída"
 - ✅ Atualiza data de entrega
 
 #### **Aba 3: Histórico**
+
 - Filtros: Tipo, Status
 - Estatísticas: Total, Recebidas, Distribuídas
 - Tabela: Todas as doações com detalhes
@@ -569,6 +621,7 @@ Formulário com 3 seções:
 **Objetivo:** Gerenciar campanhas de arrecadação
 
 **Funcionalidades:**
+
 - ➕ Criar nova campanha
 - 🔍 Filtrar por status (Ativa/Concluída)
 - 🔍 Ordenar por: Mais recentes, Nome, Progresso
@@ -577,13 +630,15 @@ Formulário com 3 seções:
 - 📊 Cards com barra de progresso e valor faltante
 
 **Campos:**
+
 - Nome* e Descrição*
 - Data Início* e Data Término*
-- Meta* (valor numérico)
-- Tipo de Meta* (R$, Kg, Unidades, Litros, Caixas)
+- Meta\* (valor numérico)
+- Tipo de Meta\* (R$, Kg, Unidades, Litros, Caixas)
 - Arrecadado
 
 **Cálculo automático:**
+
 ```
 Progresso = (Arrecadado / Meta) × 100%
 ```
@@ -595,6 +650,7 @@ Progresso = (Arrecadado / Meta) × 100%
 **Objetivo:** CRUD de locais de coleta
 
 **Funcionalidades:**
+
 - ➕ Cadastrar novo ponto
 - 🔍 Filtrar por status (Ativo/Inativo)
 - 🔍 Buscar por nome/endereço
@@ -603,8 +659,9 @@ Progresso = (Arrecadado / Meta) × 100%
 - 📊 Cards visuais com status emoji (🟢/🔴)
 
 **Campos:**
-- Responsável* (obrigatório)
-- Endereço completo*
+
+- Responsável\* (obrigatório)
+- Endereço completo\*
 
 ---
 
@@ -613,6 +670,7 @@ Progresso = (Arrecadado / Meta) × 100%
 **Objetivo:** CRUD de voluntários
 
 **Funcionalidades:**
+
 - ➕ Cadastrar novo voluntário
 - 🔍 Filtrar por status e área de atuação
 - 🔍 Buscar por nome/email/telefone
@@ -620,9 +678,11 @@ Progresso = (Arrecadado / Meta) × 100%
 - 🗑️ Excluir (bloqueado se associado a doações)
 
 **Campos:**
-- Nome*, Email*, Telefone* (obrigatórios)
+
+- Nome*, Email*, Telefone\* (obrigatórios)
 
 **Uso no sistema:**
+
 1. Ao registrar nova doação (voluntário que recebeu)
 2. Ao distribuir doação (voluntários que entregarão)
 
@@ -633,10 +693,12 @@ Progresso = (Arrecadado / Meta) × 100%
 **Objetivo:** Análises detalhadas e exportação
 
 **Filtros:**
+
 - Data Início e Fim
 - Tipo de Relatório (Visão Geral, Doações, Doadores, Beneficiários, Campanhas)
 
 **Seções:**
+
 1. Visão Geral (Métricas com delta)
 2. Análises Detalhadas (Gráficos)
 3. Tabelas Detalhadas (3 abas)
@@ -647,6 +709,7 @@ Progresso = (Arrecadado / Meta) × 100%
 ## 🔄 Fluxos de Trabalho
 
 ### Fluxo 1: Ciclo Completo de uma Doação
+
 ```
 1. Cadastrar Doador
 2. Cadastrar Beneficiário
@@ -661,6 +724,7 @@ Progresso = (Arrecadado / Meta) × 100%
 ```
 
 ### Fluxo 2: Gerenciamento de Campanha
+
 ```
 1. Criar Campanha
 2. Definir Meta
@@ -673,6 +737,7 @@ Progresso = (Arrecadado / Meta) × 100%
 ---
 
 ## 📁 Estrutura de Diretórios
+
 ```
 somos-darua/
 │
@@ -733,6 +798,7 @@ somos-darua/
 ### Padrão de Código
 
 #### 1. Validações Duplas
+
 ```python
 # Frontend (Streamlit)
 if not nome:
@@ -746,6 +812,7 @@ def validate(self):
 ```
 
 #### 2. Context Manager para Database
+
 ```python
 # Sempre usar 'with' para garantir fechamento
 with DatabaseConnection() as db:
@@ -753,6 +820,7 @@ with DatabaseConnection() as db:
 ```
 
 #### 3. Tratamento de Erros
+
 ```python
 try:
     if objeto.save():
@@ -765,6 +833,7 @@ except Exception as e:
 ```
 
 #### 4. Nomenclatura
+
 - **Variáveis:** snake_case (`total_doadores`)
 - **Classes:** PascalCase (`DashboardModel`)
 - **Funções:** snake_case (`get_metricas_dashboard`)
@@ -787,6 +856,7 @@ except Exception as e:
 ### Problema: "Connection refused" ao conectar MySQL
 
 **Solução:**
+
 ```bash
 # Verificar se MySQL está rodando
 sudo systemctl status mysql
@@ -798,6 +868,7 @@ sudo systemctl start mysql
 ### Problema: "Module not found"
 
 **Solução:**
+
 ```bash
 # Ativar ambiente virtual
 source venv/bin/activate  # Linux/Mac
@@ -810,6 +881,7 @@ pip install -r requirements.txt
 ### Problema: "Table doesn't exist"
 
 **Solução:**
+
 ```bash
 # Recriar banco
 python3 backend/database/setup.py
@@ -823,6 +895,7 @@ mysql -u root -p somos_darua < database/migrations/add_meta_campanhas.sql
 ### Problema: Dashboard mostra dados vazios
 
 **Solução:**
+
 - Verificar se migrations foram executadas
 - Cadastrar dados de teste manualmente nas páginas
 
@@ -831,24 +904,31 @@ mysql -u root -p somos_darua < database/migrations/add_meta_campanhas.sql
 ## 📚 Conceitos Aprendidos
 
 ### 1. Arquitetura em Camadas
+
 Separação clara: Frontend → Backend → Database
 
 ### 2. ORM Manual
+
 Classes Python espelham tabelas MySQL
 
 ### 3. Relacionamentos N:N
+
 Uso de tabelas intermediárias (Recebe, Possui, etc)
 
 ### 4. Transações
+
 Garantem integridade em operações complexas
 
 ### 5. Context Managers
+
 Garantem fechamento de recursos (`with`)
 
 ### 6. Status Calculado
+
 Evita inconsistências no banco
 
 ### 7. Validações Duplas
+
 Frontend (UX) + Backend (Segurança)
 
 ---
@@ -856,6 +936,7 @@ Frontend (UX) + Backend (Segurança)
 ## 🚧 Melhorias Futuras
 
 ### Fase 1: Funcionalidades Essenciais
+
 - [ ] Sistema de autenticação (login/logout)
 - [ ] Gestão de permissões (admin/voluntário)
 - [ ] Exportação de relatórios (PDF/Excel)
@@ -863,6 +944,7 @@ Frontend (UX) + Backend (Segurança)
 - [ ] Upload de fotos das doações
 
 ### Fase 2: Melhorias de UX
+
 - [ ] Dashboard personalizável
 - [ ] Filtros avançados
 - [ ] Busca global
@@ -870,6 +952,7 @@ Frontend (UX) + Backend (Segurança)
 - [ ] Modo claro/escuro
 
 ### Fase 3: Integrações
+
 - [ ] API REST para mobile
 - [ ] Integração com WhatsApp
 - [ ] Google Maps (pontos de coleta)
@@ -877,6 +960,7 @@ Frontend (UX) + Backend (Segurança)
 - [ ] Certificados de doação
 
 ### Fase 4: Analytics
+
 - [ ] Previsão de demanda (IA)
 - [ ] Sugestão de campanhas
 - [ ] Relatórios comparativos
@@ -887,12 +971,14 @@ Frontend (UX) + Backend (Segurança)
 ## 👥 Equipe
 
 ### Desenvolvimento
+
 - **Giuseppe Cordeiro** - Desenvolvedor
 - **Pedro Henrique** - Desenvolvedor
 - **Pedro Tinoco** - Desenvolvedor e Documentação
 - **Savio Faria** - Desenvolvedor
 
 ### Instituição
+
 - **Curso** - Ciência da Computação
 - **Disciplina** - Projeto Extensionista
 - **Ano** - 2024/2025
@@ -904,6 +990,7 @@ Frontend (UX) + Backend (Segurança)
 Este projeto foi desenvolvido para fins acadêmicos como parte de um projeto extensionista.
 
 **Uso Acadêmico** - Permitido para:
+
 - ✅ Estudo e aprendizado
 - ✅ Adaptação para projetos similares
 - ✅ Referência em trabalhos acadêmicos
@@ -915,6 +1002,7 @@ Este projeto foi desenvolvido para fins acadêmicos como parte de um projeto ext
 ## 🙏 Agradecimentos
 
 Agradecimentos especiais a:
+
 - 👨‍🏫 Professor Orientador pela orientação
 - 🏢 Organizações sociais que inspiraram o projeto
 - 📚 Comunidade open-source pelas ferramentas
@@ -922,9 +1010,84 @@ Agradecimentos especiais a:
 
 ---
 
+## 🤝 Como Contribuir
+
+Adoramos contribuições! Quer ajudar a melhorar o Somos DaRua? Veja como:
+
+### 📋 Formas de Contribuir
+
+- 🐛 **Reportar bugs**: Encontrou um erro? [Abra uma issue](https://github.com/giusfds/DaRua/issues/new)
+- 💡 **Sugerir melhorias**: Tem uma ideia? Compartilhe conosco!
+- 📝 **Melhorar documentação**: Sempre há espaço para melhorias
+- 💻 **Desenvolver código**: Implemente funcionalidades ou corrija bugs
+- 🧪 **Escrever testes**: Aumente a cobertura de testes
+
+### 🚀 Início Rápido
+
+```bash
+# 1. Fork o repositório
+# 2. Clone seu fork
+git clone https://github.com/SEU-USUARIO/DaRua.git
+
+# 3. Crie uma branch
+git checkout -b feature/minha-contribuicao
+
+# 4. Faça suas mudanças e commit
+git commit -m "feat: adiciona nova funcionalidade"
+
+# 5. Push e abra um Pull Request
+git push origin feature/minha-contribuicao
+```
+
+### 📚 Guias
+
+Para informações detalhadas sobre o processo de contribuição:
+
+- **[CONTRIBUTING.md](CONTRIBUTING.md)**: Guia completo de contribuição
+- **[docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md)**: Setup do ambiente de desenvolvimento
+- **[docs/TESTES.md](docs/TESTES.md)**: Como escrever e executar testes
+
+### 📜 Padrões de Código
+
+Seguimos os padrões da comunidade Python:
+
+- **PEP 8**: Estilo de código Python
+- **Type hints**: Use anotações de tipo
+- **Docstrings**: Documente funções e classes
+- **Conventional Commits**: Formato padronizado de commits
+
+Exemplo de commit:
+
+```bash
+feat(doadores): adiciona filtro por cidade
+fix(validacao): corrige validação de email
+docs: atualiza guia de instalação
+```
+
+### 🔍 Processo de Revisão
+
+1. ✅ Código segue os padrões do projeto
+2. ✅ Testes foram incluídos e passam
+3. ✅ Documentação atualizada
+4. ✅ PR pequeno e focado (< 400 linhas)
+5. ✅ Descrição clara do que foi mudado
+
+**Tempo médio de revisão**: 1-3 dias úteis
+
+### 💬 Precisa de Ajuda?
+
+- 📖 Leia a [documentação completa](docs/)
+- 💬 Abra uma [Discussion](https://github.com/giusfds/DaRua/discussions)
+- 🐛 Veja [issues marcadas como "good first issue"](https://github.com/giusfds/DaRua/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+
+**Obrigado por contribuir! Juntos, construímos algo incrível! 🙏**
+
+---
+
 ## 📖 Referências
 
 ### Documentação Oficial
+
 - [Streamlit Docs](https://docs.streamlit.io/)
 - [MySQL Documentation](https://dev.mysql.com/doc/)
 - [Python Official](https://docs.python.org/3/)
@@ -932,6 +1095,7 @@ Agradecimentos especiais a:
 - [Plotly](https://plotly.com/python/)
 
 ### Tutoriais e Recursos
+
 - [Real Python - MySQL](https://realpython.com/python-mysql/)
 - [Streamlit Gallery](https://streamlit.io/gallery)
 - [W3Schools SQL](https://www.w3schools.com/sql/)
